@@ -1,0 +1,60 @@
+[Unit]
+Description=PyMailAdmin - Administration interface for mail server
+After=network.target
+Requires=mysql.service  # Assurez-vous que le nom correspond à votre service MySQL
+
+[Service]
+Type=notify
+# Gestion du processus
+ExecStart=/usr/local/bin/gunicorn \
+    --worker-class sync \
+    --workers 2 \
+    --bind 127.0.0.1:8686 \
+    --worker-tmp-dir /tmp \
+    --max-requests 1000 \
+    --max-requests-jitter 100 \
+    --error-logfile /var/log/pymailadmin/error.log \
+    --timeout 120 \
+    --preload app:app
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s TERM $MAINPID
+TimeoutStopSec=10
+
+# Gestion des fichiers journaux
+StandardOutput=null
+StandardError=null
+
+# Sécurité
+# Exécution en tant qu'utilisateur et groupe dédié
+User=pymailadmin
+Group=pymailadmin
+
+# Espace de nommage
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+NoNewPrivileges=true
+
+# Capacités
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+# Fichiers
+ReadWritePaths=/var/log/pymailadmin
+ReadOnlyPaths=/var/www/pymailadmin
+InaccessiblePaths=/etc/passwd
+
+# Environnement
+WorkingDirectory=/var/www/pymailadmin
+Environment=PYTHONUNBUFFERED=1
+
+# Redémarrage
+Restart=always
+RestartSec=10
+
+# Notifications de santé
+WatchdogSec=30
+
+[Install]
+WantedBy=multi-user.target
