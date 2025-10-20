@@ -5,7 +5,7 @@ from utils.db import fetch_all, execute_query
 from handlers.html import html_template
 import time
 import logging
-from libs import argon2
+from libs import argon2, bcrypt, sha512_crypt, sha256_crypt, pbkdf2_sha256
 from libs import parse_qs
 
 # --- Gestion des éditions d'aliases ---
@@ -239,14 +239,36 @@ def edit_user_handler(environ, start_response):
     
         try:
             if new_password:
-                # Hachage Argon2ID
-                password_hash = argon2.using(
-                    time_cost=config['security']['argon2id']['time_cost'],
-                    memory_cost=config['security']['argon2id']['memory_cost'] // 1024,
-                    parallelism=config['security']['argon2id']['threads']
-                ).hash(new_password)
+                alg = config['mailbox_hash']['algorithm']
+                prefix = config['mailbox_hash']['prefix']
 
-                crypt_value = config['security']['argon2id']['prefix_for_dovecot'] + password_hash
+                if alg == 'argon2id':
+                    password_hash = argon2.using(
+                        type='ID',
+                        time_cost=config['mailbox_hash']['argon2_time_cost'],
+                        memory_cost=config['mailbox_hash']['argon2_memory_cost'],  # en KiB
+                        parallelism=config['mailbox_hash']['argon2_parallelism']
+                    ).hash(new_password)
+                elif alg == 'argon2i':
+                    password_hash = argon2.using(
+                        type='I',
+                        time_cost=config['mailbox_hash']['argon2_time_cost'],
+                        memory_cost=config['mailbox_hash']['argon2_memory_cost'],
+                        parallelism=config['mailbox_hash']['argon2_parallelism']
+                    ).hash(new_password)
+                elif alg == 'bcrypt':
+                    password_hash = bcrypt.using(rounds=config['mailbox_hash']['bcrypt_rounds']).hash(new_password)
+                elif alg == 'sha512-crypt':
+                    password_hash = sha512_crypt.hash(new_password)
+                elif alg == 'sha256-crypt':
+                    password_hash = sha256_crypt.hash(new_password)
+                elif alg == 'pbkdf2':
+                    password_hash = pbkdf2_sha256.using(rounds=config['mailbox_hash']['pbkdf2_rounds']).hash(new_password)
+                else:
+                    # Fallback
+                    raise ValueError("Unsupported hash algorithm for Dovecot mailbox passwords.")
+
+                crypt_value = prefix + password_hash
                 execute_query(config['sql']['update_user_password'], (crypt_value, int(user_id)))
 
                 # Désactiver l'utilisateur
@@ -260,7 +282,6 @@ def edit_user_handler(environ, start_response):
                 # Marquer comme rekey pending
                 execute_query(config['sql']['insert_rekey_pending'], (email, token, token))
             
-            # Déplacé hors du `if`, mais dans le `try`
             start_response("302 Found", [("Location", "/home")])
             return []
 

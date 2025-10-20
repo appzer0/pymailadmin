@@ -12,7 +12,7 @@ NOT TO USE IN PRODUCTION
 
 Ce dépôt est un travail en cours pour pymailadmin, une interface web d'admin de serveur mail en Python pour les utilisateur⋅ices.
 
-Le but est d'être compatible avec toute installation de serveur mail, basée sur Dovecot interfacé à MySQL et avec le plugin mail_crypt foncionnel.
+Le but est d'être compatible avec toute installation de serveur mail, basée sur Dovecot interfacé à MySQL et avec le plugin mail_crypt fonctionnel.
 
 A NE PAS UTILISER EN PRODUCTION
 

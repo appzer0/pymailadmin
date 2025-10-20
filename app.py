@@ -3,7 +3,12 @@
 from middleware.session import SessionMiddleware
 from routes.login import login_handler
 from routes.dashboard import home_handler
-from routes.user_management import edit_alias_handler, add_alias_handler, edit_user_handler, delete_user_handler
+from routes.user_management import (
+    edit_alias_handler,
+    add_alias_handler,
+    edit_user_handler,
+    delete_user_handler
+)
 from routes.moderation import (
     confirm_registration_handler,
     moderation_queue_handler,

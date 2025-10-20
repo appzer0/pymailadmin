@@ -6,10 +6,37 @@ from config_data import config
 
 load_dotenv()
 
+# Guess prefix for dovecot
+def determine_prefix(algorithm):
+    algo = algorithm.lower()
+    if algo == 'argon2id':
+        return '{ARGON2ID}'
+    if algo == 'argon2i':
+        return '{ARGON2I}'
+    if algo == 'bcrypt':
+        return '{BCRYPT}'
+    if algo == 'sha512-crypt':
+        return '{SHA512-CRYPT}'
+    if algo == 'sha256-crypt':
+        return '{SHA256-CRYPT}'
+    if algo == 'pbkdf2':
+        return '{PBKDF2}'
+    return '{ARGON2ID}'
+    
 # Dynamic configuration loader
 dynamic_config = {
     'SECRET_KEY': os.getenv('SECRET_KEY'),
-
+    
+    'mailbox_hash': {
+        'algorithm': os.getenv('DOVECOT_HASH', 'argon2id').lower(),
+        'prefix': os.getenv('DOVECOT_HASH_PREFIX') or determine_prefix(os.getenv('DOVECOT_HASH', 'argon2id')),
+        'argon2_time_cost': int(os.getenv('DOVECOT_ARGON2_TIME_COST', 3)),
+        'argon2_memory_cost': int(os.getenv('DOVECOT_ARGON2_MEMORY_COST', 65536)),
+        'argon2_parallelism': int(os.getenv('DOVECOT_ARGON2_PARALLELISM', 2)),
+        'bcrypt_rounds': int(os.getenv('DOVECOT_BCRYPT_ROUNDS', 12)),
+        'pbkdf2_rounds': int(os.getenv('DOVECOT_PBKDF2_ROUNDS', 480000)),
+    },
+    
     'mail': {
         'smtp_host': os.getenv('MAIL_SMTP_HOST'),
         'smtp_port': int(os.getenv('MAIL_SMTP_PORT', 587)),

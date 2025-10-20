@@ -45,13 +45,3 @@ def check_rate_limit(key, max_attempts, window_minutes, block_minutes):
     else:
         remaining = max_attempts - record['attempts'] - 1
         return True, remaining, 0
-
-# --- Fonction de hachage (pour les admins) ---
-def hash_password(password):
-    # Utilisation de passlib pour Argon2
-    from passlib.hash import argon2
-    return argon2.using(
-        time_cost=config['security']['argon2id']['time_cost'],    # Nombre d'itérations
-        memory_cost=config['security']['argon2id']['memory_cost'] // 1024,  # Converti en KiB
-        parallelism=config['security']['argon2id']['threads']    # Nombre de threads
-    ).hash(password)
