@@ -142,7 +142,7 @@ def add_alias_handler(environ, start_response):
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['destination_invalid'].encode('utf-8')]
 
-        # Vérifiy existing alias
+        # Verifiy existing alias
         existing = fetch_all(config['sql']['select_alias_by_source'], (source,))
         if existing:
             start_response("409 Conflict", [("Content-Type", "text/html")])
