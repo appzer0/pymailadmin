@@ -39,10 +39,8 @@ NOT TO USE IN PRODUCTION
 ``mysql -udbuser -p dbname < schema.sql``
 
 #### Install Python and pip
-```
-apt update
-apt install python3 python3-pip python3-venv python3-dev
-```
+``apt update``
+``apt install python3 python3-pip python3-venv python3-dev``
 
 #### Create unprivileged user
 ``adduser --system --group --no-create-home --disabled-login pymailadmin``
@@ -50,8 +48,8 @@ apt install python3 python3-pip python3-venv python3-dev
 #### Create "venv" virtual environment
 Copy/clone repository somewhere, e.g. /var/www/pymailadmin, then:
 
-```python3 -m venv /var/www/pymailadmin/venv
-source /var/www/pymailadmin/venv/bin/activate```
+``python3 -m venv /var/www/pymailadmin/venv``
+``source /var/www/pymailadmin/venv/bin/activate``
 
 #### Install dependencies
 ``cd /var/www/pymailadmin && pip3 install -r requirements.txt``
@@ -62,27 +60,27 @@ source /var/www/pymailadmin/venv/bin/activate```
 ### Configuration
 
 #### Customize .env environment file, READ IT AND EDIT IT CAREFULLY
-```cd /var/www/pymailadmin && cp .env.example .env
-vim .env``
+``cd /var/www/pymailadmin && cp .env.example .env``
+``vim .env````
 
 #### Fix permissions:
-```chown -R pymailadmin:pymailadmin /var/www/pymailadmin
-chmod -R 750 /var/www/pymailadmin``
+``chown -R pymailadmin:pymailadmin /var/www/pymailadmin``
+``chmod -R 750 /var/www/pymailadmin``
 
 #### Customize systemd service file``
-``vim /etc/systemd/system/pymailadmin.service
+``vim /etc/systemd/system/pymailadmin.service``
 ``systemctl daemon-reload``
 
 #### Copy nginx config file , enable and edit
-```cp pymailadmin.nginx.conf /etc/nginx/sites-available/pymailadmin.conf
-ln -s /etc/nginx/sites-available/pymailadmin.conf /etc/nginx/sites-enabled/
-vim /etc/nginx/sites-enabled/pymailadmin.conf
-systemctl reload nginx```
+``cp pymailadmin.nginx.conf /etc/nginx/sites-available/pymailadmin.conf``
+``ln -s /etc/nginx/sites-available/pymailadmin.conf /etc/nginx/sites-enabled/``
+``vim /etc/nginx/sites-enabled/pymailadmin.conf``
+``systemctl reload nginx``
 
 ### Start the service
 ``systemctl enable --nox pymailadmin.service``
 
-#### Installez le connecteur pour gérer les suppressions et rekey
+#### Install the connector to manage deletions and rekeys
 Install the pymailadmin connector for Dovecot **ON THE DOVECOT HOST** to
 process pending deletions & expired rekey requests:
 
@@ -152,16 +150,16 @@ A NE PAS UTILISER EN PRODUCTION
 ``mysql -udbuser -p dbname < schema.sql``
 
 #### Installez Python and pip
-```apt update
-apt install python3 python3-pip python3-venv python3-dev```
+``apt update``
+``apt install python3 python3-pip python3-venv python3-dev``
 
 #### Créez un utilisateuir non-privilégié
 ``adduser --system --group --no-create-home --disabled-login pymailadmin``
 
 #### Créez l'environnement virtuel "venv"
 Copy/clone repository somewhere, e.g. /var/www/pymailadmin, then:
-```python3 -m venv /var/www/pymailadmin/venv
-source /var/www/pymailadmin/venv/bin/activate```
+``python3 -m venv /var/www/pymailadmin/venv``
+``source /var/www/pymailadmin/venv/bin/activate``
 
 #### Installez les dépendances
 ``cd /var/www/pymailadmin && pip3 install -r requirements.txt``
@@ -172,28 +170,25 @@ source /var/www/pymailadmin/venv/bin/activate```
 ### Configuration
 
 #### Personnliasez le fichier .env, LISEZ-LE ET ÉDITEZ-LE MINUTIEUSEMENT
-```cd /var/www/pymailadmin && cp .env.example .env
-vim .env```
+``cd /var/www/pymailadmin && cp .env.example .env``
+``vim .env``
 
 #### Corrigez les permissions:
-```chown -R pymailadmin:pymailadmin /var/www/pymailadmin
-chmod -R 750 /var/www/pymailadmin```
+``chown -R pymailadmin:pymailadmin /var/www/pymailadmin``
+``chmod -R 750 /var/www/pymailadmin``
 
 #### Personnalisez le fichier du service systemd``
-```vim /etc/systemd/system/pymailadmin.service
-systemctl daemon-reload```
+``vim /etc/systemd/system/pymailadmin.service``
+``systemctl daemon-reload``
 
 #### Copiez le fichier de configuration pour nginx, activez-le et éditez-le
-```cp pymailadmin.nginx.conf /etc/nginx/sites-available/pymailadmin.conf
-ln -s /etc/nginx/sites-available/pymailadmin.conf /etc/nginx/sites-enabled/
-vim /etc/nginx/sites-enabled/pymailadmin.conf
-systemctl reload nginx```
+``cp pymailadmin.nginx.conf /etc/nginx/sites-available/pymailadmin.conf``
+``ln -s /etc/nginx/sites-available/pymailadmin.conf /etc/nginx/sites-enabled/``
+``vim /etc/nginx/sites-enabled/pymailadmin.conf``
+``systemctl reload nginx``
 
 ### Démarrez le service
 ``systemctl enable --nox pymailadmin.service``
-
-#### Installez la tâche planifiée des suppressions de boites en attente
-``0 */2 * * * pymailadmin /usr/bin/python3 /var/www/pymailadmin/scripts/mail-delete-cron.py``
 
 #### Installez le connecteur pour gérer les suppressions et rekey
 Installez le connector pymailadmin pour Dovecot **SUR LE SERVEUR DOVECOT**
