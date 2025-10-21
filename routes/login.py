@@ -4,48 +4,40 @@ from passlib.hash import argon2
 from utils.security import get_client_ip, check_rate_limit
 from utils.db import fetch_all
 from handlers.html import html_template
+from libs import translations  # ← import
 
-# --- Pages generation ---
 def login_page(session):
     token = session.get_csrf_token()
     content = f"""
     <form method="POST">
         <input type="hidden" name="csrf_token" value="{token}">
-        <label for="email">Email address:</label><br>
+        <label for="email">{translations['email_label']}</label><br>
         <input type="email" id="email" name="email" placeholder="your@email.com" required><br><br>
-        <label for="password">Password:</label><br>
+        <label for="password">{translations['password_label']}</label><br>
         <input type="password" id="password" name="password" required><br><br>
-        <button type="submit">Login</button>
+        <button type="submit">{translations['btn_login']}</button>
     </form>
     """
-    return html_template("Admin Login", content)
-
+    return html_template(translations['login_title'], content)
 
 def login_handler(environ, start_response):
     if environ['REQUEST_METHOD'] == 'GET':
         session = environ['session']
-        
         if not session.id:
-            session.save()  # Force new ID
-        
+            session.save()
         start_response("200 OK", [("Content-Type", "text/html")])
         return [login_page(session).encode()]
 
     elif environ['REQUEST_METHOD'] == 'POST':
-        # 1. Fetch data
         content_length = int(environ.get('CONTENT_LENGTH', 0))
         post_data = environ['wsgi.input'].read(content_length).decode('utf-8')
         data = parse_qs(post_data)
 
-        # 2. Extract fields
         email = data.get('email', [''])[0].strip()
         password = data.get('password', [''])[0]
         csrf_token = data.get('csrf_token', [''])[0]
 
-        # 3. Get real IP
         ip = get_client_ip(environ)
-
-        # 4. Rate limiting
         rl_config = config['security']['rate_limit']['login']
         success, _, retry_after = check_rate_limit(
             f"ip:{ip}",
@@ -58,20 +50,17 @@ def login_handler(environ, start_response):
                 ("Content-Type", "text/html"),
                 ("Retry-After", str(retry_after))
             ])
-            return [b"Too Many Requests. Try again later."]
+            return [translations['too_many_attempts'].encode('utf-8')]
 
-        # 5. Validate CSRF token
         session = environ['session']
         if not session.validate_csrf_token(csrf_token):
             start_response("403 Forbidden", [("Content-Type", "text/html")])
-            return [b"Invalid CSRF token"]
+            return [translations['csrf_invalid'].encode('utf-8')]
 
-        # 6. Validate email
         if not email or '@' not in email:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"Invalid email adress."]
+            return [translations['invalid_email'].encode('utf-8')]
 
-        # 7. Verify user
         user = fetch_all(config['sql']['select_admin_user_by_email'], (email,))
         if user and argon2.verify(password, user[0]['password_hash']):
             session.data['logged_in'] = True
@@ -83,4 +72,4 @@ def login_handler(environ, start_response):
             return []
         else:
             start_response("401 Unauthorized", [("Content-Type", "text/html")])
-            return [b"Invalid credentials."]
+            return [translations['invalid_credentials'].encode('utf-8')]

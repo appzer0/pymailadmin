@@ -2,6 +2,7 @@
 
 from libs import config, fetch_all
 from handlers.html import html_template
+from i18n.en_US import translations
 
 # --- Dashboard display ---
 def delete_user_form(user_id, csrf_token):
@@ -9,7 +10,7 @@ def delete_user_form(user_id, csrf_token):
     <form method="POST" action="/deleteuser" style="display:inline;">
         <input type="hidden" name="user_id" value="{user_id}">
         <input type="hidden" name="csrf_token" value="{csrf_token}">
-        <button type="submit" onclick="return confirm('Êtes-vous sûr⋅e ?')">Supprimer</button>
+        <button type="submit" onclick="return confirm('{translations["confirm_delete"]}')">{translations["btn_yes"]}</button>
     </form>'''
 
 def home_page(users_data, aliases_data, session):
@@ -22,29 +23,29 @@ def home_page(users_data, aliases_data, session):
 
         alias_list = "".join(
             f"<li>{a['source']} → {a['destination']} "
-            f"(<a href='/editalias?id={a['id']}'>Éditer</a>)</li>"
+            f"(<a href='/editalias?id={a['id']}'>{translations['btn_modify']}</a>)</li>"
             for a in user_aliases
         )
-        alias_html = f"<ul>{alias_list}</ul>" if alias_list else "<em>Aucun alias</em>"
+        alias_html = f"<ul>{alias_list}</ul>" if alias_list else f"<em>{translations['no_aliases']}</em>"
 
         # Rekey / Deletion pending states
         rekey_emails = [r['email'] for r in fetch_all(config['sql']['select_all_rekey_pending'], None)]
         deletion_emails = [r['email'] for r in fetch_all(config['sql']['select_all_deletion_pending'], None)]
 
         if user['email'] in rekey_emails:
-            edit_user_link = "<em>⚠ En cours de rechiffrement…  ⚠</em>"
+            edit_user_link = f"<em>{translations['rekey_status']}</em>"
             delete_form = "<em>…</em>"
             add_link = "…"
-            status_note = "<strong>⚠ RE-ENRCRYPTION RUNNING… ⚠</strong> Your mailbox is being re-encrypted. It is disabled for 15 minutes waiting to finish to be re-encrypt  with your new password."
+            status_note = f"<strong>{translations['rekey_status']}</strong> {translations['rekey_note']}"
         elif user['email'] in deletion_emails:
-            edit_user_link = "<em>⚠ Pending Deletion… ⚠</em>"
+            edit_user_link = f"<em>{translations['deletion_status']}</em>"
             delete_form = "<em>…</em>"
             add_link = "…"
-            status_note = "<strong>⚠ SCHEDULED DELETION… ⚠</strong> This mailbox will be definitely deleted in 48h."
+            status_note = f"<strong>{translations['deletion_status']}</strong> {translations['deletion_note']}"
         else:
-            edit_user_link = f'<a href="/edituser?id={user["id"]}"><button>Change Password</button></a>'
+            edit_user_link = f'<a href="/edituser?id={user["id"]}"><button>{translations["change_password_btn"]}</button></a>'
             delete_form = delete_user_form(user['id'], session.get_csrf_token())
-            add_link = f'<a href="/addalias?destination={user["email"]}">Add an alias</a>'
+            add_link = f'<a href="/addalias?destination={user["email"]}">{translations["add_alias_link"]}</a>'
             status_note = ""
 
         rows += f"""
@@ -59,12 +60,12 @@ def home_page(users_data, aliases_data, session):
     table_html = f"""
     <table border="1">
         <thead>
-            <tr><th>Mailbox</th><th>Actions</th><th>Alias</th></tr>
+            <tr><th>{translations["mailbox_col"]}</th><th>{translations["actions_col"]}</th><th>{translations["aliases_col"]}</th></tr>
         </thead>
         <tbody>{rows}</tbody>
     </table>
     """
-    return html_template("My mailboxes", table_html)
+    return html_template(translations["dashboard_title"], table_html)
 
 def home_handler(environ, start_response):
     session = environ.get('session', None)

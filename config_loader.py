@@ -26,6 +26,8 @@ def determine_prefix(algorithm):
 # Dynamic configuration loader
 dynamic_config = {
     'SECRET_KEY': os.getenv('SECRET_KEY'),
+    'PRETTY_NAME': os.getenv('PRETTY_NAME', 'pymailadmin'),
+    'PYMAILADMIN_URL' = os.getenv('PYMAILADMIN_URL', 'https://mailadmin.liberta.email'),
     
     'mailbox_hash': {
         'algorithm': os.getenv('DOVECOT_HASH', 'argon2id').lower(),

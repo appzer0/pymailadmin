@@ -82,7 +82,7 @@ def delete_mailbox_with_doveadm(email):
 
 # MAIN FUNCTION
 def run_cron():
-    logging.info("Démarrage du cron de suppression des boîtes mail")
+    logging.info("Starting task for processing pendning deletions and rekeys")
 
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
@@ -93,10 +93,10 @@ def run_cron():
         pending = cursor.fetchall()
 
         if not pending:
-            logging.info("Aucune boîte à supprimer.")
+            logging.info("No mailbox to delete.")
         else:
 			# Deletions occur HERE
-            logging.info(f"{len(pending)} boîte(s) trouvée(s) pour suppression")
+            logging.info(f"{len(pending)} mailbox(es) found are marked for deletion")
 
             for record in pending:
                 email = record['email']

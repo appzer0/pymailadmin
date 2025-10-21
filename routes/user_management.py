@@ -7,6 +7,7 @@ import time
 import logging
 from libs import argon2, bcrypt, sha512_crypt, sha256_crypt, pbkdf2_sha256
 from libs import parse_qs
+from i18n.en_US import translations
 
 # --- Aliases management ---
 def edit_alias_handler(environ, start_response):
@@ -22,27 +23,27 @@ def edit_alias_handler(environ, start_response):
 
         if not alias_id.isdigit():
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"ID invalide"]
+            return [translations['alias_id_invalid'].encode('utf-8')]
 
         alias = fetch_all(config['sql']['select_alias_by_id'], (int(alias_id),))
         if not alias:
             start_response("404 Not Found", [("Content-Type", "text/html")])
-            return [b"Aliases not found"]
+            return [translations['alias_not_found'].encode('utf-8')]
 
         # Generate form
         form = f"""
         <form method="POST">
             <input type="hidden" name="alias_id" value="{alias_id}">
             <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
-            <label for="source">Source:</label><br>
+            <label for="source">{translations['source_label']}</label><br>
             <input type="text" id="source" name="source" value="{alias[0]['source']}" required><br><br>
-            <label for="destination">Destination:</label><br>
+            <label for="destination">{translations['destination_label']}</label><br>
             <input type="email" id="destination" name="destination" value="{alias[0]['destination']}" required><br><br>
-            <button type="submit">Modify</button>
-            <a href="/home"><button type="button">Cancel</button></a>
+            <button type="submit">{translations['btn_modify']}</button>
+            <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
         </form>
         """
-        body = html_template("Modify an alias", form)
+        body = html_template(translations['edit_alias_title'], form)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
 
@@ -52,7 +53,7 @@ def edit_alias_handler(environ, start_response):
         content_length = int(environ.get('CONTENT_LENGTH', 0))
         if content_length == 0:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"Missing request content"]
+            return [translations['bad_request'].encode('utf-8')]
         
         post_data = environ['wsgi.input'].read(content_length).decode('utf-8')
         
@@ -64,18 +65,18 @@ def edit_alias_handler(environ, start_response):
         
         if not session.validate_csrf_token(csrf_token):
             start_response("403 Forbidden", [("Content-Type", "text/html")])
-            return [b"Invalid CSRF token"]
+            return [translations['csrf_invalid'].encode('utf-8')]
         
         # Validate entries
         if not alias_id.isdigit():
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"Invalid alias ID"]
+            return [translations['alias_id_invalid'].encode('utf-8')]
         if not new_source or not new_destination:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"Missing mandatory fields"]
+            return [translations['source_required'].encode('utf-8')]
         if '@' not in new_destination:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"Invalida destination address"]
+            return [translations['destination_invalid'].encode('utf-8')]
 
         # Update aliases in database
         try:
@@ -84,9 +85,9 @@ def edit_alias_handler(environ, start_response):
             return []
         except Exception as e:
             start_response("500 Internal Server Error", [("Content-Type", "text/html")])
-            logging.error(f"Error when  updating alias: {e}")
-            return [b"Error when  updating alias"]
-
+            logging.error(f"Error when updating alias: {e}")
+            return [translations['alias_update_failed'].encode('utf-8')]
+            
 # --- Aliases creations ---
 def add_alias_handler(environ, start_response):
     session = environ.get('session', None)
@@ -102,21 +103,21 @@ def add_alias_handler(environ, start_response):
 
         if not destination or '@' not in destination:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"Invalid destination"]
+            return [translations['destination_invalid'].encode('utf-8')]
 
         # Generate form
         form = f"""
         <form method="POST">
-            <label for="source">Source:</label><br>
+            <label for="source">{translations['source_label']}</label><br>
             <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
             <input type="text" id="source" name="source" required><br><br>
-            <label for="destination">Destination:</label><br>
+            <label for="destination">{translations['destination_label']}</label><br>
             <input type="email" id="destination" name="destination" value="{destination}" readonly required><br><br>
-            <button type="submit">Create Alias</button>
-            <a href="/home"><button type="button">Cancel</button></a>
+            <button type="submit">{translations['btn_add']}</button>
+            <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
         </form>
         """
-        body = html_template("Add an Alias", form)
+        body = html_template(translations['add_alias_title'], form)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
 
@@ -131,27 +132,27 @@ def add_alias_handler(environ, start_response):
 
         if not session.validate_csrf_token(csrf_token):
             start_response("403 Forbidden", [("Content-Type", "text/html")])
-            return [b"Invalid CSRF token"]
+            return [translations['csrf_invalid'].encode('utf-8')]
 
         # Validation
         if not source or not destination:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"Missing mandatory fields"]
+            return [translations['source_required'].encode('utf-8')]
         if '@' not in destination:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"invalid destination"]
+            return [translations['destination_invalid'].encode('utf-8')]
 
         # Vérifiy existing alias
         existing = fetch_all(config['sql']['select_alias_by_source'], (source,))
         if existing:
             start_response("409 Conflict", [("Content-Type", "text/html")])
-            return [b"An alias with this source already exists."]
+            return [translations['alias_exists'].encode('utf-8')]
 
         # Fetch domain_id
         user = fetch_all(config['sql']['select_user_by_email'], (destination,))
         if not user:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"Destination mailbox unknown"]
+            return [translations['destination_unknown'].encode('utf-8')]
         domain_id = user[0]['domain_id']
 
         # insert new alias
@@ -161,8 +162,8 @@ def add_alias_handler(environ, start_response):
             return []
         except Exception as e:
             start_response("500 Internal Server Error", [("Content-Type", "text/html")])
-            logging.error(f"Erreur when adding alias: {e}")
-            return [b"Erreur when adding alias"]
+            logging.error(f"Error when adding alias: {e}")
+            return [translations['alias_add_failed'].encode('utf-8')]
 
 # --- Mailbox edits ---
 def edit_user_handler(environ, start_response):
@@ -178,26 +179,26 @@ def edit_user_handler(environ, start_response):
 
         if not user_id.isdigit():
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"Invalid user ID"]
+            return [translations['user_id_invalid'].encode('utf-8')]
 
         user = fetch_all(config['sql']['select_user_by_id'], (int(user_id),))
         if not user:
             start_response("404 Not Found", [("Content-Type", "text/html")])
-            return [b"User not found"]
+            return [translations['user_not_found'].encode('utf-8')]
   
         form = f"""
         <form method="POST">
             <input type="hidden" name="user_id" value="{user_id}">
             <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
-            <label for="email">Email address:</label><br>
+            <label for="email">{translations['email_field_label']}</label><br>
             <input type="email" id="email" name="email" value="{user[0]['email']}" required><br><br>
-            <label for="password">Password (leave empty to keep current password):</label><br>
+            <label for="password">{translations['password_field_label']}</label><br>
             <input type="password" id="password" name="password"><br><br>
-            <button type="submit">Modify mailbox</button>
-            <a href="/home"><button type="button">Cancel</button></a>
+            <button type="submit">{translations['btn_modify_mailbox']}</button>
+            <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
         </form>
         """
-        body = html_template("Modify a Mailbox", form)
+        body = html_template(translations['edit_user_title'], form)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
 
@@ -205,7 +206,7 @@ def edit_user_handler(environ, start_response):
         content_length = int(environ.get('CONTENT_LENGTH', 0))
         if content_length == 0:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"Missing content"]
+            return [translations['bad_request'].encode('utf-8')]
         
         post_data = environ['wsgi.input'].read(content_length).decode('utf-8')
         data = parse_qs(post_data)
@@ -216,24 +217,24 @@ def edit_user_handler(environ, start_response):
         
         if not session.validate_csrf_token(csrf_token):
             start_response("403 Forbidden", [("Content-Type", "text/html")])
-            return [b"Invalid CSRF token"]
+            return [translations['csrf_invalid'].encode('utf-8')]
         
         if not user_id.isdigit():
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"Invalid ID"]
+            return [translations['user_id_invalid'].encode('utf-8')]
         
         # Get user_id and check ownership
         user_id = int(user_id)
         admin_user_id = session.data['id']
         if not fetch_all(config['sql']['is_owner'], (admin_user_id, user_id)):
             start_response("403 Forbidden", [("Content-Type", "text/html")])
-            return [b"Forbidden access: you are not the owner of this mailbox?!"]
+            return [translations['ownership_required'].encode('utf-8')]
         
         # Fetch original email
         user = fetch_all(config['sql']['select_user_by_id'], (int(user_id),))
         if not user:
             start_response("404 Not Found", [("Content-Type", "text/html")])
-            return [b"User not found"]
+            return [translations['user_not_found'].encode('utf-8')]
         
         email = user[0]['email']
     
@@ -288,7 +289,7 @@ def edit_user_handler(environ, start_response):
         except Exception as e:
             logging.error(f"Error when modifying: {e}")
             start_response("500 Internal Server Error", [("Content-Type", "text/html")])
-            return [b"Error when modifying"]
+            return [translations['user_modify_failed'].encode('utf-8')]
 
 # --- Mailbox deletion ---
 def delete_user_handler(environ, start_response):
@@ -304,26 +305,27 @@ def delete_user_handler(environ, start_response):
 
         if not user_id.isdigit():
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"Invalid ID"]
+            return [translations['user_id_invalid'].encode('utf-8')]
 
         user = fetch_all(config['sql']['select_user_by_id'], (int(user_id),))
         if not user:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"User not found"]
+            return [translations['user_not_found'].encode('utf-8')]
         
         form = f"""
-        <p><strong>ATTENTION: MAILBOX INCOMING DELETION FOR {user[0]['email']}</strong></p>
-        <p>We cannot access your mails as they are fully encrypted. We won't be able to give them as plain text. Make sure you obtained your mails as plain text if you plan to keep them locally. By example, in a mail client like Thundrbird, synchronize your mails on your computer then quit Thunderbird or switch it offline. Then only delete your mailbox.</p>
-        <p><strong>All stored data related to your mails will be definitely lost!</strong></p>
-        <p>Are you really sure you want to <strong>delete the mailbox for {user[0]['email']}</strong>?</p>
+        <p><strong>{translations['deletion_warning_title']}</strong></p>
+        <p>{translations['deletion_warning_intro']}</p>
+        <p>{translations['deletion_warning_sync']}</p>
+        <p><strong>{translations['deletion_warning_final']}</strong></p>
+        <p>{translations['deletion_confirm_prompt']} <strong>{user[0]['email']}</strong>?</p>
         <form method="POST">
             <input type="hidden" name="user_id" value="{user_id}">
             <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
-            <button type="submit">YES, definitely delete mailbox and data NOW</button>
-            <a href="/home"><button type="button">NO, cancel now</button></a>
+            <button type="submit">{translations['btn_delete_definitely']}</button>
+            <a href="/home"><button type="button">{translations['btn_no_cancel']}</button></a>
         </form>
         """
-        body = html_template("Confirmm deletion", form)
+        body = html_template(translations['confirm_deletion_title'], form)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
 
@@ -331,7 +333,7 @@ def delete_user_handler(environ, start_response):
         content_length = int(environ.get('CONTENT_LENGTH', 0))
         if content_length == 0:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"Missing content"]
+            return [translations['bad_request'].encode('utf-8')]
         
         post_data = environ['wsgi.input'].read(content_length).decode('utf-8')
         data = parse_qs(post_data)
@@ -341,11 +343,11 @@ def delete_user_handler(environ, start_response):
     
         if not session.validate_csrf_token(csrf_token):
             start_response("403 Forbidden", [("Content-Type", "text/html")])
-            return [b"Invalid CSRF token"]
+            return [translations['csrf_invalid'].encode('utf-8')]
     
         if not user_id.isdigit():
             start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [b"ID invalide"]
+            return [translations['user_id_invalid'].encode('utf-8')]
     
         # Fetch user_id and check ownership
         user_id = int(user_id)
@@ -353,13 +355,13 @@ def delete_user_handler(environ, start_response):
     
         if not fetch_all(config['sql']['is_owner'], (admin_user_id, user_id)):
             start_response("403 Forbidden", [("Content-Type", "text/html")])
-            return [b"Forbidden access: you are not the owner of this mailbox?!"]
+            return [translations['ownership_required'].encode('utf-8')]
 
         # Fetch email
         user = fetch_all(config['sql']['select_user_by_id'], (int(user_id),))
         if not user:
             start_response("404 Not Found", [("Content-Type", "text/html")])
-            return [b"User not found"]
+            return [translations['user_not_found'].encode('utf-8')]
         
         email = user[0]['email']
 
@@ -368,7 +370,7 @@ def delete_user_handler(environ, start_response):
         
         if rekey_active:
             start_response("409 Conflict", [("Content-Type", "text/html")])
-            body = html_template("Deletion blocked", "<p>Cannot delete mailbox : a reenryption is already running. Try again later.</p>")
+            body = html_template(translations['confirm_deletion_title'], f"<p>{translations['deletion_blocked_rekey']}</p>")
             return [body.encode()]
 
         try:
@@ -383,12 +385,11 @@ def delete_user_handler(environ, start_response):
             # Mark deletion as pending
             execute_query(config['sql']['insert_deletion_pending'], (email, token, token))
                         
-            # Rediriect to confirmation message
+            # Redirect to confirmation message
             start_response("302 Found", [("Location", "/home")])
             return []
         
         except Exception as e:
             logging.error(f"Error when creating pending deletion: {e}")
             start_response("500 Internal Server Error", [("Content-Type", "text/html")])
-            return [b"Error when creating pending deletion"]
-        
+            return [translations['deletion_failed'].encode('utf-8')]

@@ -21,6 +21,6 @@ def send_email(to_email, subject, body):
         server.quit()
         return True
     except Exception as e:
-        logging.error(f"Erreur d'envoi: {e}")
+        logging.error(f"{failed_sending_email}: {e}")
         return False
 

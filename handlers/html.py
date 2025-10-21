@@ -1,12 +1,12 @@
 # handlers/html.py
 
-from libs import config
+from libs import config, translations
 
 def html_template(title, content):
     css_path = config['css']['main_css']
     return f"""
     <!DOCTYPE html>
-    <html lang="fr">
+    <html lang="{translations['html_lang']}">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
