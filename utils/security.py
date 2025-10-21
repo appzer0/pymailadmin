@@ -3,14 +3,14 @@
 from libs import config, parse_qs, secrets, datetime, timedelta
 from utils.db import fetch_all, execute_query
 
-# --- Récupération de l'IP réelle ---
+# --- Get real IP ---
 def get_client_ip(environ):
     x_forwarded_for = environ.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
         return x_forwarded_for.split(',')[0].strip()
     return environ.get('REMOTE_ADDR', '127.0.0.1')
 
-# --- CSRF ---
+# --- CSRF tokens---
 def generate_csrf_token():
     return secrets.token_hex(32)
 

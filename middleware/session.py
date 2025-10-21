@@ -55,7 +55,7 @@ def is_valid_session_id(session_id, secret):
 
 def SessionMiddleware(app, secret=None):
     if secret is None:
-        secret = config.get('SECRET_KEY', 'your-default-secret-key-change-this')
+        secret = config.get('SECRET_KEY', 'your-default-secret-key')
 
     def middleware(environ, start_response):
         cookies = {}

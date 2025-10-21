@@ -84,6 +84,7 @@ dynamic_config = {
         'delete_user': os.getenv('SQL_DELETE_USER'),
         'select_users_by_domain': os.getenv('SQL_SELECT_USERS_BY_DOMAIN'),
         'select_user_by_id': os.getenv('SQL_SELECT_USER_BY_ID'),
+        'select_user_by_id_in': os.getenv('SQL_SELECT_USER_BY_ID_IN'),
         'disable_user': os.getenv('SQL_DISABLE_USER'),
         'reactivate_user_after_rekey_timeout': os.getenv('SQL_REACTIVATE_USER_AFTER_REKEY_TIMEOUT'),
         'insert_alias': os.getenv('SQL_INSERT_ALIAS'),

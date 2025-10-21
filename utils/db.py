@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 
-# Connexion à la base de données
+# Database connection
 def get_db_connection():
     try:
         connection = mysql.connector.connect(
@@ -20,10 +20,10 @@ def get_db_connection():
         )
         return connection
     except Error as e:
-        logging.error(f"Erreur de connexion à la base de données: {e}")
+        logging.error(f"Error when connecting to database: {e}")
         return None
 
-# Exécution d'une requête de type INSERT, UPDATE, DELETE
+# INSERT, UPDATE, DELETE requests execution
 def execute_query(query, params=None):
     connection = None
     cursor = None
@@ -35,9 +35,8 @@ def execute_query(query, params=None):
         cursor = connection.cursor()
         cursor.execute(query, params)
         lastrowid = cursor.lastrowid
-        # La transaction est auto-commitée grâce à autocommit=True
     except Error as e:
-        logging.error(f"Erreur lors de l'exécution de la requête: {query} | Params: {params} | Erreur: {e}")
+        logging.error(f"Error when executing SQL request: {query} | Params: {params} | Error: {e}")
         if connection and connection.is_connected():
             connection.rollback()
         raise
@@ -48,7 +47,7 @@ def execute_query(query, params=None):
             connection.close()
     return lastrowid
 
-# Récupération de plusieurs résultats
+# Fetch results
 def fetch_all(query, params=None):
     connection = None
     cursor = None
@@ -57,11 +56,11 @@ def fetch_all(query, params=None):
         connection = get_db_connection()
         if connection is None:
             return results
-        cursor = connection.cursor(dictionary=True)  # Retourne des dictionnaires
+        cursor = connection.cursor(dictionary=True)
         cursor.execute(query, params)
         results = cursor.fetchall()
     except Error as e:
-        logging.error(f"Erreur lors de la récupération des données: {query} | Params: {params} | Erreur: {e}")
+        logging.error(f"Error when fetching data: {query} | Params: {params} | Error: {e}")
         raise
     finally:
         if cursor:

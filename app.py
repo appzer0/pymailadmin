@@ -63,6 +63,6 @@ def application(environ, start_response):
         start_response("302 Found", [("Location", "/login")])
         return []
 
-# Appliquer le middleware
+# Middleware
 app = SessionMiddleware(application)
 

@@ -13,12 +13,12 @@ def register_handler(environ, start_response):
         content = f"""
         <form method="POST">
             <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
-            <label>Email :</label><br>
+            <label>Email:</label><br>
             <input type="email" name="email" required><br><br>
-            <label>Mot de passe :</label><br>
+            <label>Password:</label><br>
             <input type="password" name="password" required><br><br>
             <input type="hidden" name="role" value="user">
-            <label>Motif d’inscription :</label><br>
+            <label>Reason. Why do you want to create an email adress? For what kind of usage? Be precise and express like a human. We won't tolerate any AI, bot or automatic process. Any doubt from us and you wour registration will be declined! So be inventive. Thanks!</label><br>
             <textarea name="reason" required></textarea><br><br>
             <button type="submit">S'inscrire</button>
         </form>
@@ -68,15 +68,15 @@ def register_handler(environ, start_response):
 
         # Email
         confirm_url = f"https://mailadmin.liberta.email/register/confirm?hash={confirmation_hash}"
-        body = f"Confirmez ici : {confirm_url}"
-        send_email(email, "Confirmez votre inscription", body)
+        body = f"Confirm by clicking the link: {confirm_url}"
+        send_email(email, "Confirm registration", body)
         
-        if not send_email(email, "Confirmez votre inscription", body):
+        if not send_email(email, "Confirm registration", body):
             start_response("500 Internal Server Error", [...])
-            return [b"Échec de l'envoi de l'email de confirmation"]
+            return [b"Internal Server Error. Coulsd not send confirmation link by email"]
 
         # Réponse
-        content = "<p>Inscription enregistrée. Vérifiez votre email.</p>"
-        body = html_template("Inscription", content)
+        content = "<p>Registration saved. Check your usual mail inbox.</p>"
+        body = html_template("Registration", content)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
