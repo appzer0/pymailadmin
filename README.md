@@ -40,6 +40,7 @@ NOT TO USE IN PRODUCTION
 
 #### Install Python and pip
 ``apt update``
+
 ``apt install python3 python3-pip python3-venv python3-dev``
 
 #### Create unprivileged user
@@ -49,6 +50,7 @@ NOT TO USE IN PRODUCTION
 Copy/clone repository somewhere, e.g. /var/www/pymailadmin, then:
 
 ``python3 -m venv /var/www/pymailadmin/venv``
+
 ``source /var/www/pymailadmin/venv/bin/activate``
 
 #### Install dependencies
@@ -61,20 +63,26 @@ Copy/clone repository somewhere, e.g. /var/www/pymailadmin, then:
 
 #### Customize .env environment file, READ IT AND EDIT IT CAREFULLY
 ``cd /var/www/pymailadmin && cp .env.example .env``
-``vim .env````
+
+``vim .env``
 
 #### Fix permissions:
 ``chown -R pymailadmin:pymailadmin /var/www/pymailadmin``
+
 ``chmod -R 750 /var/www/pymailadmin``
 
 #### Customize systemd service file``
 ``vim /etc/systemd/system/pymailadmin.service``
+
 ``systemctl daemon-reload``
 
 #### Copy nginx config file , enable and edit
 ``cp pymailadmin.nginx.conf /etc/nginx/sites-available/pymailadmin.conf``
+
 ``ln -s /etc/nginx/sites-available/pymailadmin.conf /etc/nginx/sites-enabled/``
+
 ``vim /etc/nginx/sites-enabled/pymailadmin.conf``
+
 ``systemctl reload nginx``
 
 ### Start the service
@@ -90,7 +98,7 @@ Install the needed packages:
 
 Install ``scripts/mail-delete-cron.py`` somewhere, e.g.: ``/opt/pymailadmin/scripts``
 
-Édit the script:
+Edit the script:
 ``vim /opt/pymailadmin/scripts/mail-delete-cron.py``
 
 READ IT AND EDIT IT CAREFULLY.
@@ -151,6 +159,7 @@ A NE PAS UTILISER EN PRODUCTION
 
 #### Installez Python and pip
 ``apt update``
+
 ``apt install python3 python3-pip python3-venv python3-dev``
 
 #### Créez un utilisateuir non-privilégié
@@ -159,6 +168,7 @@ A NE PAS UTILISER EN PRODUCTION
 #### Créez l'environnement virtuel "venv"
 Copy/clone repository somewhere, e.g. /var/www/pymailadmin, then:
 ``python3 -m venv /var/www/pymailadmin/venv``
+
 ``source /var/www/pymailadmin/venv/bin/activate``
 
 #### Installez les dépendances
@@ -171,20 +181,26 @@ Copy/clone repository somewhere, e.g. /var/www/pymailadmin, then:
 
 #### Personnliasez le fichier .env, LISEZ-LE ET ÉDITEZ-LE MINUTIEUSEMENT
 ``cd /var/www/pymailadmin && cp .env.example .env``
+
 ``vim .env``
 
 #### Corrigez les permissions:
 ``chown -R pymailadmin:pymailadmin /var/www/pymailadmin``
+
 ``chmod -R 750 /var/www/pymailadmin``
 
 #### Personnalisez le fichier du service systemd``
 ``vim /etc/systemd/system/pymailadmin.service``
+
 ``systemctl daemon-reload``
 
 #### Copiez le fichier de configuration pour nginx, activez-le et éditez-le
 ``cp pymailadmin.nginx.conf /etc/nginx/sites-available/pymailadmin.conf``
+
 ``ln -s /etc/nginx/sites-available/pymailadmin.conf /etc/nginx/sites-enabled/``
+
 ``vim /etc/nginx/sites-enabled/pymailadmin.conf``
+
 ``systemctl reload nginx``
 
 ### Démarrez le service
