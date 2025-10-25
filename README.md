@@ -147,7 +147,7 @@ A NE PAS UTILISER EN PRODUCTION
 
 ### Fonctionnalités
 
-  * Adminsitrez votre serveur de mail chiffré basé sur Dovecot.
+  * Administrez votre serveur de mail chiffré basé sur Dovecot.
   * Utilise votre base de données Dovecot sans l'altérer.
   * Prend en charge l'inscription utilisateur⋅ice.
   * Les utilisateur⋅ices gèrent leurs boites et leur alias en autonomie.
@@ -204,7 +204,8 @@ les ID des utilisateurs :
 ``adduser --system --group --no-create-home --disabled-login pymailadmin``
 
 #### Créez l'environnement virtuel "venv"
-Copy/clone repository somewhere, e.g. /var/www/pymailadmin, then:
+Copier/clonez le dépôt quelque part, par ex. : /var/www/pymailadmin, puis :
+
 ``python3 -m venv /var/www/pymailadmin/venv``
 
 ``source /var/www/pymailadmin/venv/bin/activate``
