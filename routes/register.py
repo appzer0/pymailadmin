@@ -8,6 +8,9 @@ from utils.security import get_client_ip, check_rate_limit, validate_csrf
 import secrets
 from passlib.hash import argon2
 
+PYMAILADMIN_URL = config['PYMAILADMIN_URL']
+PRETTY_NAME = config['PRETTY_NAME']
+
 def register_handler(environ, start_response):
     session = environ['session']
     if environ['REQUEST_METHOD'] == 'GET':

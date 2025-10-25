@@ -22,12 +22,121 @@ def determine_prefix(algorithm):
     if algo == 'pbkdf2':
         return '{PBKDF2}'
     return '{ARGON2ID}'
+
+# Load database schema variables
+def load_db_schema():
+    """Load database table and field names from .env"""
+    return {
+        # Domains table
+        'table_domains': os.getenv('DB_TABLE_DOMAINS', 'domain'),
+        'field_domain_id': os.getenv('DB_FIELD_DOMAIN_ID', 'id'),
+        'field_domain_name': os.getenv('DB_FIELD_DOMAIN_NAME', 'domain'),
+        
+        # Users table
+        'table_users': os.getenv('DB_TABLE_USERS', 'users'),
+        'field_user_id': os.getenv('DB_FIELD_USER_ID', 'id'),
+        'field_user_domain_id': os.getenv('DB_FIELD_USER_DOMAIN_ID', 'domain_id'),
+        'field_user_email': os.getenv('DB_FIELD_USER_EMAIL', 'email'),
+        'field_user_password': os.getenv('DB_FIELD_USER_PASSWORD', 'crypt'),
+        'field_user_quota': os.getenv('DB_FIELD_USER_QUOTA', 'quota'),
+        'field_user_note': os.getenv('DB_FIELD_USER_NOTE', 'note'),
+        'field_user_active': os.getenv('DB_FIELD_USER_ACTIVE', 'active'),
+        
+        # Aliases table
+        'table_aliases': os.getenv('DB_TABLE_ALIASES', 'alias'),
+        'field_alias_id': os.getenv('DB_FIELD_ALIAS_ID', 'id'),
+        'field_alias_domain_id': os.getenv('DB_FIELD_ALIAS_DOMAIN_ID', 'domain_id'),
+        'field_alias_source': os.getenv('DB_FIELD_ALIAS_SOURCE', 'source'),
+        'field_alias_destination': os.getenv('DB_FIELD_ALIAS_DESTINATION', 'destination'),
+    }
+
+def generate_sql_queries(schema):
+    """Generate SQL queries based on schema configuration"""
     
+    # Domains queries
+    sql_domains = {
+        'select_domain_by_name': f"SELECT * FROM {schema['table_domains']} WHERE {schema['field_domain_name']} = ?",
+        'select_domain_by_id': f"SELECT * FROM {schema['table_domains']} WHERE {schema['field_domain_id']} = ?",
+        'select_all_domains': f"SELECT {schema['field_domain_id']}, {schema['field_domain_name']} FROM {schema['table_domains']}",
+    }
+    
+    # Users queries
+    sql_users = {
+        'insert_user': f"INSERT INTO {schema['table_users']} ({schema['field_user_domain_id']}, {schema['field_user_email']}, {schema['field_user_password']}, {schema['field_user_quota']}, {schema['field_user_note']}, {schema['field_user_active']}) VALUES (?, ?, ?, ?, ?, ?)",
+        'select_user_by_id_in': f"SELECT * FROM {schema['table_users']} WHERE {schema['field_user_id']} IN ({{user_ids}})",
+        'select_users_by_domain': f"SELECT * FROM {schema['table_users']} WHERE {schema['field_user_domain_id']} = ?",
+        'select_user_by_id': f"SELECT * FROM {schema['table_users']} WHERE {schema['field_user_id']} = ?",
+        'select_user_by_email': f"SELECT * FROM {schema['table_users']} WHERE {schema['field_user_email']} = ?",
+        'update_user_password': f"UPDATE {schema['table_users']} SET {schema['field_user_password']} = ? WHERE {schema['field_user_id']} = ?",
+        'update_user_email': f"UPDATE {schema['table_users']} SET {schema['field_user_email']} = ? WHERE {schema['field_user_id']} = ?",
+        'disable_user': f"UPDATE {schema['table_users']} SET {schema['field_user_active']} = 0 WHERE {schema['field_user_email']} = ?",
+        'delete_user': f"DELETE FROM {schema['table_users']} WHERE {schema['field_user_id']} = ?",
+        
+        # Hybrid query with pymailadmin_ownerships
+        'count_active_mailboxes_by_owner': f"""
+            SELECT COUNT(*) as count 
+            FROM pymailadmin_ownerships o
+            INNER JOIN {schema['table_users']} u ON o.user_id = u.{schema['field_user_id']}
+            LEFT JOIN pymailadmin_deletion_pending dp ON u.{schema['field_user_email']} = dp.email
+            WHERE o.admin_user_id = %s AND dp.email IS NULL
+        """,
+        
+        # Reactivate after rekey timeout
+        'reactivate_user_after_rekey_timeout': f"""
+            UPDATE {schema['table_users']} 
+            INNER JOIN (
+                SELECT email FROM pymailadmin_rekey_pending 
+                WHERE created_at < NOW() - INTERVAL %s MINUTE
+            ) AS expired ON {schema['table_users']}.{schema['field_user_email']} = expired.email 
+            SET {schema['table_users']}.{schema['field_user_active']} = 1
+        """,
+    }
+    
+    # Aliases queries
+    sql_aliases = {
+        'insert_alias': f"INSERT INTO {schema['table_aliases']} ({schema['field_alias_domain_id']}, {schema['field_alias_source']}, {schema['field_alias_destination']}) VALUES (?, ?, ?)",
+        'select_alias_by_id': f"SELECT * FROM {schema['table_aliases']} WHERE {schema['field_alias_id']} = ?",
+        'select_alias_by_domain': f"SELECT * FROM {schema['table_aliases']} WHERE {schema['field_alias_domain_id']} = ?",
+        'select_alias_by_mailbox': f"SELECT * FROM {schema['table_aliases']} WHERE {schema['field_alias_domain_id']} = ? AND {schema['field_alias_destination']} = ?",
+        'select_alias_by_source': f"SELECT * FROM {schema['table_aliases']} WHERE {schema['field_alias_source']} = ?",
+        'count_aliases_by_mailbox': f"SELECT COUNT(*) as count FROM {schema['table_aliases']} WHERE {schema['field_alias_destination']} = ?",
+        'update_alias': f"UPDATE {schema['table_aliases']} SET {schema['field_alias_source']} = ?, {schema['field_alias_destination']} = ? WHERE {schema['field_alias_id']} = ?",
+        'delete_alias': f"DELETE FROM {schema['table_aliases']} WHERE {schema['field_alias_id']} = ?",
+    }
+    
+    # Merge all queries
+    return {**sql_domains, **sql_users, **sql_aliases}
+
 # Dynamic configuration loader
 dynamic_config = {
     'SECRET_KEY': os.getenv('SECRET_KEY'),
     'PRETTY_NAME': os.getenv('PRETTY_NAME', 'pymailadmin'),
-    'PYMAILADMIN_URL' = os.getenv('PYMAILADMIN_URL', 'https://mailadmin.liberta.email'),
+    'PYMAILADMIN_URL': os.getenv('PYMAILADMIN_URL', 'https://mailadmin.liberta.email'),
+    
+    'limits': {
+        'max_mailboxes_per_user': int(os.getenv('MAX_MAILBOXES_PER_USER', 3))
+        'max_aliases_per_mailbox': int(os.getenv('MAX_ALIASES_PER_MAILBOX', 100))  # ← NOUVEAU
+    },
+    
+    'security': {
+        'argon2id': {
+            'time_cost': int(os.getenv('ADMIN_HASH_TIME_COST', 3)),
+            'memory_cost': int(os.getenv('ADMIN_HASH_MEMORY_COST', 65536)),
+            'threads': int(os.getenv('ADMIN_HASH_PARALLELISM', 2))
+        },
+        'rate_limit': {
+            'login': {
+                'max_attempts': int(os.getenv('LOGIN_MAX_ATTEMPTS', 5)),
+                'window_minutes': int(os.getenv('LOGIN_WINDOW_MINUTES', 15)),
+                'block_minutes': int(os.getenv('LOGIN_BLOCK_MINUTES', 30))
+            },
+            'register': {
+                'max_attempts_per_ip': int(os.getenv('REGISTER_MAX_ATTEMPTS_PER_IP', 3)),
+                'window_minutes': int(os.getenv('REGISTER_WINDOW_MINUTES', 60)),
+                'block_minutes': int(os.getenv('REGISTER_BLOCK_MINUTES', 60))
+            }
+        }
+    },
     
     'mailbox_hash': {
         'algorithm': os.getenv('DOVECOT_HASH', 'argon2id').lower(),
@@ -77,43 +186,32 @@ dynamic_config = {
         'main_css': os.getenv('CSS_MAIN', 'main.css')
     },
 
-    # Dovecot SQL requests — from .env
-    'sql_dovecot': {
-        'insert_user': os.getenv('SQL_INSERT_USER'),
-        'select_user_by_email': os.getenv('SQL_SELECT_USER_BY_EMAIL'),
-        'update_user_password': os.getenv('SQL_UPDATE_USER_PASSWORD'),
-        'update_user_email': os.getenv('SQL_UPDATE_USER_EMAIL'),
-        'delete_user': os.getenv('SQL_DELETE_USER'),
-        'select_users_by_domain': os.getenv('SQL_SELECT_USERS_BY_DOMAIN'),
-        'select_user_by_id': os.getenv('SQL_SELECT_USER_BY_ID'),
-        'select_user_by_id_in': os.getenv('SQL_SELECT_USER_BY_ID_IN'),
-        'disable_user': os.getenv('SQL_DISABLE_USER'),
-        'reactivate_user_after_rekey_timeout': os.getenv('SQL_REACTIVATE_USER_AFTER_REKEY_TIMEOUT'),
-        'insert_alias': os.getenv('SQL_INSERT_ALIAS'),
-        'select_alias_by_id': os.getenv('SQL_SELECT_ALIAS_BY_ID'),
-        'select_alias_by_domain': os.getenv('SQL_SELECT_ALIAS_BY_DOMAIN'),
-        'select_alias_by_mailbox': os.getenv('SQL_SELECT_ALIAS_BY_MAILBOX'),
-        'select_alias_by_source': os.getenv('SQL_SELECT_ALIAS_BY_SOURCE'),
-        'update_alias': os.getenv('SQL_UPDATE_ALIAS'),
-        'delete_alias': os.getenv('SQL_DELETE_ALIAS'),
-        'select_domain_by_name': os.getenv('SQL_SELECT_DOMAIN_BY_NAME'),
-        'select_all_domains': os.getenv('SQL_SELECT_ALL_DOMAINS'),
-        'select_user_by_id_in': os.getenv('SQL_SELECT_USER_BY_ID_IN'),
-    }
+    # Dovecot SQL requests — AUTO-GENERATED from schema
+    'sql_dovecot': None  # Will be populated by load_config()
 }
 
 def load_config():
+    """Load complete configuration with auto-generated SQL queries"""
+    
     required_env = [
         'SECRET_KEY', 'MAIL_SMTP_HOST', 'MAIL_FROM_EMAIL',
-        'DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD',
-        'SQL_INSERT_USER', 'SQL_SELECT_USER_BY_EMAIL', 'SQL_UPDATE_USER_PASSWORD'
+        'DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'
     ]
 
     missing = [var for var in required_env if not os.getenv(var)]
     if missing:
         raise EnvironmentError(f"Error: Missing variables in .env : {', '.join(missing)}")
     
+    # Load database schema configuration
+    schema = load_db_schema()
+    
+    # Generate SQL queries based on schema
+    sql_queries = generate_sql_queries(schema)
+    
+    # Inject generated queries into dynamic_config
+    dynamic_config['sql_dovecot'] = sql_queries
+    
+    # Merge configurations
     full_config = {**config, **dynamic_config}
-    full_config['security']['paths'] = dynamic_config['paths']
-    full_config['security']['css'] = dynamic_config['css']
+    
     return full_config

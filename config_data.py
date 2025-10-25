@@ -21,7 +21,12 @@ config = {
         """,
         'reset_rate_limit': "UPDATE pymailadmin_rate_limits SET `attempts` = 0, `blocked_until` = NULL WHERE `key` = ?",
         'delete_expired_rate_limits': "DELETE FROM pymailadmin_rate_limits WHERE `blocked_until` IS NOT NULL AND `blocked_until` < NOW()",
-
+        
+        # Admin user utilities
+        'count_admin_users': "SELECT COUNT(*) as count FROM pymailadmin_admin_users",
+        'count_super_admins': "SELECT COUNT(*) as count FROM pymailadmin_admin_users WHERE role = 'super_admin'",
+        'update_admin_role_and_activate': "UPDATE pymailadmin_admin_users SET role = ?, active = 1 WHERE email = ?",
+                
         # Admin users for web admin
         'insert_admin_user': "INSERT INTO pymailadmin_admin_users (email, password_hash) VALUES (?, ?)",
         'select_admin_user_by_email': "SELECT * FROM pymailadmin_admin_users WHERE email = ?",
@@ -33,7 +38,7 @@ config = {
         'is_owner': "SELECT 1 FROM pymailadmin_ownerships WHERE admin_user_id = %s AND user_id = %s",
         'add_ownership': "INSERT INTO pymailadmin_ownerships (admin_user_id, user_id, is_primary) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE is_primary = VALUES(is_primary)",
         'remove_ownership': "DELETE FROM pymailadmin_ownerships WHERE admin_user_id = %s AND user_id = %s",
-
+        
         # Pending registrations
         'insert_admin_registration': "INSERT INTO pymailadmin_admin_registrations (email, password_hash, confirmation_hash, expires_at, reason) VALUES (?, ?, ?, ?, ?)",
         'delete_admin_registration_by_email': "DELETE FROM pymailadmin_admin_registrations WHERE email = ?",
@@ -45,7 +50,14 @@ config = {
         'select_admin_registration_by_hash_unconfirmed': "SELECT * FROM pymailadmin_admin_registrations WHERE confirmation_hash = ? AND expires_at > NOW() AND confirmed = 0",
         'delete_registration_by_email': "DELETE FROM pymailadmin_admin_registrations WHERE email = ?",
         'select_admins_for_moderation': "SELECT email FROM pymailadmin_admin_users WHERE role = 'admin' AND active = 1",
-         
+        
+        # Pending creations for mailboxes
+        'insert_creation_pending': 'INSERT INTO pymailadmin_creation_pending (email, token) VALUES (?, ?) ON DUPLICATE KEY UPDATE token = ?',
+        'select_creation_pending': 'SELECT email FROM pymailadmin_creation_pending WHERE email = ?',
+        'select_all_creation_pending': 'SELECT email FROM pymailadmin_creation_pending',
+        'delete_creation_pending': 'DELETE FROM pymailadmin_creation_pending WHERE email = ?',
+        'cleanup_expired_creation': "DELETE FROM pymailadmin_creation_pending WHERE created_at < NOW() - INTERVAL %s HOUR",
+        
         # Pending rekeys for mail_crypt, pendings for mailboxes deletion
         'insert_rekey_pending': 'INSERT INTO pymailadmin_rekey_pending (email, token) VALUES (?, ?) ON DUPLICATE KEY UPDATE token = ?',
         'select_rekey_pending': 'SELECT email FROM pymailadmin_rekey_pending WHERE email = ?',

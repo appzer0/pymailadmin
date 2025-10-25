@@ -7,6 +7,7 @@ import time
 import logging
 from libs import argon2, bcrypt, sha512_crypt, sha256_crypt, pbkdf2_sha256
 from libs import parse_qs
+from utils.alias_limits import can_create_alias
 from i18n.en_US import translations
 
 # --- Aliases management ---
@@ -25,7 +26,7 @@ def edit_alias_handler(environ, start_response):
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['alias_id_invalid'].encode('utf-8')]
 
-        alias = fetch_all(config['sql']['select_alias_by_id'], (int(alias_id),))
+        alias = fetch_all(config['sql_dovecot']['select_alias_by_id'], (int(alias_id),))
         if not alias:
             start_response("404 Not Found", [("Content-Type", "text/html")])
             return [translations['alias_not_found'].encode('utf-8')]
@@ -80,7 +81,7 @@ def edit_alias_handler(environ, start_response):
 
         # Update aliases in database
         try:
-            execute_query(config['sql']['update_alias'], (new_source, new_destination, int(alias_id)))
+            execute_query(config['sql_dovecot']['update_alias'], (new_source, new_destination, int(alias_id)))
             start_response("302 Found", [("Location", "/home")])
             return []
         except Exception as e:
@@ -104,9 +105,20 @@ def add_alias_handler(environ, start_response):
         if not destination or '@' not in destination:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['destination_invalid'].encode('utf-8')]
-
+        
+        # Check aliases limit
+        can_create, current_count, max_count = can_create_alias(destination)
+        
+        if not can_create:
+            warning = f'<p style="color: red; font-weight: bold;">{translations["alias_limit_reached"].format(count=max_count)}</p>'
+            form_disabled = 'disabled'
+        else:
+            warning = f'<p>{translations["alias_count_display"].format(count=current_count, max=max_count)}</p>'
+            form_disabled = ''
         # Generate form
+        
         form = f"""
+        {warning}
         <form method="POST">
             <label for="source">{translations['source_label']}</label><br>
             <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
@@ -141,15 +153,21 @@ def add_alias_handler(environ, start_response):
         if '@' not in destination:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['destination_invalid'].encode('utf-8')]
+        
+        # Re-check aliases limit
+        can_create, current_count, max_count = can_create_alias(destination)
+        if not can_create:
+            start_response("403 Forbidden", [("Content-Type", "text/html")])
+            return [translations['error_alias_limit_exceeded'].format(count=max_count).encode('utf-8')]
 
         # Verifiy existing alias
-        existing = fetch_all(config['sql']['select_alias_by_source'], (source,))
+        existing = fetch_all(config['sql_dovecot']['select_alias_by_source'], (source,))
         if existing:
             start_response("409 Conflict", [("Content-Type", "text/html")])
             return [translations['alias_exists'].encode('utf-8')]
 
         # Fetch domain_id
-        user = fetch_all(config['sql']['select_user_by_email'], (destination,))
+        user = fetch_all(config['sql_dovecot']['select_user_by_email'], (destination,))
         if not user:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['destination_unknown'].encode('utf-8')]
@@ -157,7 +175,7 @@ def add_alias_handler(environ, start_response):
 
         # insert new alias
         try:
-            execute_query(config['sql']['insert_alias'], (domain_id, source, destination))
+            execute_query(config['sql_dovecot']['insert_alias'], (domain_id, source, destination))
             start_response("302 Found", [("Location", "/home")])
             return []
         except Exception as e:
@@ -181,7 +199,7 @@ def edit_user_handler(environ, start_response):
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['user_id_invalid'].encode('utf-8')]
 
-        user = fetch_all(config['sql']['select_user_by_id'], (int(user_id),))
+        user = fetch_all(config['sql_dovecot']['select_user_by_id'], (int(user_id),))
         if not user:
             start_response("404 Not Found", [("Content-Type", "text/html")])
             return [translations['user_not_found'].encode('utf-8')]
@@ -307,7 +325,7 @@ def delete_user_handler(environ, start_response):
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['user_id_invalid'].encode('utf-8')]
 
-        user = fetch_all(config['sql']['select_user_by_id'], (int(user_id),))
+        user = fetch_all(config['sql_dovecot']['select_user_by_id'], (int(user_id),))
         if not user:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['user_not_found'].encode('utf-8')]
@@ -375,7 +393,7 @@ def delete_user_handler(environ, start_response):
 
         try:
             # Disable user
-            execute_query(config['sql']['disable_user'], (email,))
+            execute_query(config['sql_dovecot']['disable_user'], (email,))
             
             # Generate token
             import hashlib

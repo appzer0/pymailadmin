@@ -11,18 +11,23 @@ NOT TO USE IN PRODUCTION
 
 ### Features
 
-  * Supports registering as a user, supplies a moderation interface for admins.
-  * Users manage their mailboxes and aliases.
-  * When password change for a mailbox, a rekey is pending and mailbox is disabled for 15 minutes for storag to  be reencrypted.
+  * Administrate your Dovecot-based encrypted mail server
+  * Uses your Dovecot database without altering it.
+  * Supports registering as a new mailbox user.
+  * Users manage their mailboxes and aliases on their own.
+  * Supplies a moderation interface for new registrations.
+  * Supports maximum mailboxes number and maximum aliases number per mailbox.
+  * When password change for a mailbox, a rekey occurs and mailbox is disabled for 15 minutes for storage to be reencrypted.
   * Mailboxes deletions requests are in pending state, deletions actually occur after 48 hours (via a crontask).
-  * Uses the same MySQL/MariaDB database as Dovecot but in separate tables.
-  * Supports separate web frontend admin server.
+  * Supports a web frontend admin server seperated from you Dovecot mail server.
 
 ### Requirements
 
+System:
+
   * A Debian-based system (tested on Debian 13 "trixie" only).
   * A fully functional mail server running Dovecot 2.4.1+ for auth and mail management.
-  * A fully functional Dovecot, talking to a MySQL/MariaDB database.
+  * A fully functional Dovecot installation, talking to a MySQL/MariaDB database.
   * A fully functional Dovecot ``mail_crypt`` plugin setup for mail storage encryption.
   * An acceptable hash algorithm for mail passwords. pymailadmin supports the following algorithms ONLY:
     * ``argon2id``
@@ -31,9 +36,23 @@ NOT TO USE IN PRODUCTION
     * ``sha512-crypt``
     * ``sha256-crypt``
     * ``pbkdf2``
-  * A bit of patience and easy-going on the Python code quality.
+
+Dovecot database:
+
+  * A special field in your users' table for enabled/disabled mailboxes (values: 0|1).
+
+And a bit of patience and easy-going on the Python code quality.
 
 ### Installation
+
+#### Edit schema.sql to adapt foreign keys to your tables/fields names
+
+Change 2 foreign keys references in schema.sql. Replace "users(id)" with
+your own table and field names, those storing the actual users IDs:
+
+``FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,``
+
+``FOREIGN KEY (`user_id`) REFERENCES users(id) ON DELETE CASCADE``
 
 #### Import tables schema into you mail database
 ``mysql -udbuser -p dbname < schema.sql``
@@ -62,6 +81,9 @@ Copy/clone repository somewhere, e.g. /var/www/pymailadmin, then:
 ### Configuration
 
 #### Customize .env environment file, READ IT AND EDIT IT CAREFULLY
+You will mostly have to pay attention when customizing the tables and fields names for Dovecot.
+You may modify the latter in the first-time setup in pymailadmin.
+
 ``cd /var/www/pymailadmin && cp .env.example .env``
 
 ``vim .env``
@@ -89,34 +111,29 @@ Copy/clone repository somewhere, e.g. /var/www/pymailadmin, then:
 ``systemctl enable --nox pymailadmin.service``
 
 #### Install the connector to manage deletions and rekeys
-Install the pymailadmin connector for Dovecot **ON THE DOVECOT HOST** to
-process pending deletions & expired rekey requests:
+Install the pymailadmin connector for Dovecot **ON THE DOVECOT HOST** to process pending creations/deletions, cleanups and expired rekey requests:
 
 Install the needed packages:
 
 ``apt install python3 python3-mysqldb``
 
-Install ``scripts/mail-delete-cron.py`` somewhere, e.g.: ``/opt/pymailadmin/scripts``
+Install ``scripts/pymailadmin-cron.py`` somewhere, e.g.: ``/opt/pymailadmin/scripts``
 
 Edit the script:
-``vim /opt/pymailadmin/scripts/mail-delete-cron.py``
+``vim /opt/pymailadmin/scripts/pymailadmin-cron.py``
 
 READ IT AND EDIT IT CAREFULLY.
 You'll have to modify:
   * your database connection parameters
-  * Adapat 2 SQL requests to your database (that you've already done before in .env)
+  * Adapt 3 SQL requests to your database (what you've already done before in .env)
 
 Install the crontask :
-``*/2 * * * * root /usr/bin/python3 /opt/pymailadmin/scripts/mail-delete-cron.py``
+``*/2 * * * * root /usr/bin/python3 /opt/pymailadmin/scripts/pymailadmin-cron.py``
 
-#### Create a superadmin
-  * Register as simple user on ``https://mydopemailadmin.domain.tld/register``
-  * Confirm email by clicking the confirmation link sent
-  * Update your role in database:
-    * ``UPDATE `pymailadmin_admin_users` SET `role = 'super_admin' WHERE email = your-registered-address@domain.tld``
-  
-#### Acces web admin
-  * Go to ``https://mydopemailadmin.domain.tld/login``
+#### Access the web admin
+  * Go to ``https://mydopemailadmin.domain.tld``
+  * Create a super admin account there
+  * Configure and finish installation by following the instuctions
   * Enjoy new incoming bugs and problems.
 
 ## French / Français
@@ -130,14 +147,20 @@ A NE PAS UTILISER EN PRODUCTION
 
 ### Fonctionnalités
 
-  * Prend en charge l'inscription utilisateur⋅ice et fournit une interface de modération pour les admins.
+  * Adminsitrez votre serveur de mail chiffré basé sur Dovecot.
+  * Utilise votre base de données Dovecot sans l'altérer.
+  * Prend en charge l'inscription utilisateur⋅ice.
+  * Les utilisateur⋅ices gèrent leurs boites et leur alias en autonomie.
+  * Fournit une interface de modération pour les admins.
   * Les utilisateur⋅ices gèrent leurs boites mails et leur alias.
+  * Prend en charge un nombre maximum de boites mail et d'alias par boite.
   * Quand le mot de passe de la boite mail change, un rechiffrement en attente est créé et la boite est désactivée 15 minutes pour le rechiffrement.
   * Les demande de suppression de boites mail sont placées en attente et la suppression se fait après 48 hours (via cron).
-  * Utilise la même base de données MySQL/MariaDB database que Dovecot mais dans des tables séparées.
-  * Prend en charge un serveur serveur web frontal séparé du serveur mail.
+  * Prend en charge un serveur web frontal séparé de votre serveur mail Dovecot.
 
 ### Pré-requis
+
+Système :
 
   * Un seveur basé sur Debian (testé uniquement sur Debian 13 "trixie").
   * Un serveur mail fonctionnel basé sur Dovecot 2.4.1+ pour l'authentification et la gestion des boites mail.
@@ -150,9 +173,24 @@ A NE PAS UTILISER EN PRODUCTION
     * ``sha512-crypt``
     * ``sha256-crypt``
     * ``pbkdf2``
-  * Un peu de patience et d'indulgence sur la qualité du code Python.
+
+Base de données pour Dovecot:
+
+  * Un champ spécial dans la tables des boites mail pour les boites actives/inactives (valeurs: 0|1).
+
+Et un peu de patience et d'indulgence sur la qualité du code Python.
 
 ### Installation
+
+#### Éditez schema.sql pour l'adapter à votre table et noms de champs
+
+Changez les 2 références des clefs étrangères dans schema.sql. Remplacez
+"users(id)" avec vos propres noms de table et de champ, ceux qui stockent
+les ID des utilisateurs :
+
+``FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,``
+
+``FOREIGN KEY (`user_id`) REFERENCES users(id) ON DELETE CASCADE``
 
 #### Importez le schéma des tables dans votre base
 ``mysql -udbuser -p dbname < schema.sql``
@@ -162,7 +200,7 @@ A NE PAS UTILISER EN PRODUCTION
 
 ``apt install python3 python3-pip python3-venv python3-dev``
 
-#### Créez un utilisateuir non-privilégié
+#### Créez un utilisateur non-privilégié
 ``adduser --system --group --no-create-home --disabled-login pymailadmin``
 
 #### Créez l'environnement virtuel "venv"
@@ -180,6 +218,9 @@ Copy/clone repository somewhere, e.g. /var/www/pymailadmin, then:
 ### Configuration
 
 #### Personnliasez le fichier .env, LISEZ-LE ET ÉDITEZ-LE MINUTIEUSEMENT
+Vous aurez notamment à bien faire attention en personnalisant les noms des tables et des champs pour Dovecot.
+Vous pourrez modifier ces derniers dans la première mise en service dans pymailadmin.
+
 ``cd /var/www/pymailadmin && cp .env.example .env``
 
 ``vim .env``
@@ -207,33 +248,27 @@ Copy/clone repository somewhere, e.g. /var/www/pymailadmin, then:
 ``systemctl enable --nox pymailadmin.service``
 
 #### Installez le connecteur pour gérer les suppressions et rekey
-Installez le connector pymailadmin pour Dovecot **SUR LE SERVEUR DOVECOT**
-pour traiter les suppressions d eboites mail et le nettoyage des demandes de
-et des rekey ayant expiré:
+Installez le connector pymailadmin pour Dovecot **SUR LE SERVEUR DOVECOT** pour traiter les créations/suppressions de boites mail et le nettoyage des demandes et des rekey ayant expiré:
 
 Installez les paquets nécessaires:
 
 ``apt install python3 python3-mysqldb``
 
-Installez ``scripts/mail-delete-cron.py`` quelque part, ex. : ``/opt/pymailadmin/scripts``
+Installez ``scripts/pymailadmin-cron.py`` quelque part, ex. : ``/opt/pymailadmin/scripts``
 
 Éditez le script:
-``vim /opt/pymailadmin/scripts/mail-delete-cron.py``
+``vim /opt/pymailadmin/scripts/pymailadmin-cron.py``
 
 LISEZ-LE ET ÉDITEZ-LE MINUTIEUSEMENT.
 Vous devrez modifier :
   * vos paramètres de connexion à la base de données
-  * 2 requêtes SQL pour les adapter à votre base (que vous avez déjà fait dans .env)
+  * 3 requêtes SQL pour les adapter à votre base (que vous avez déjà fait dans .env)
 
 Installez la tâche planifié cron :
 ``*/2 * * * * root /usr/bin/python3 /opt/pymailadmin/scripts/mail-delete-cron.py``
 
-#### Créez un⋅e super-administrateur⋅ice
-  * Inscrivez-vous comme simple utilisateur⋅ice sur ``https://mydopemailadmin.domain.tld/register``
-  * Confirmez votre adresse email en cliquant sur le lien de confirmation reçu
-  * Mettez à jour votre rôle dans la base :
-    * ``UPDATE `pymailadmin_admin_users` SET `role = 'super_admin' WHERE email = votre-adresse-a-linscription@domain.tld``
-  
-#### Accédez à l'interface web d'admin
-  * Allez sur ``https://mydopemailadmin.domain.tld/login``
+#### Accédez à l'interface web
+  * Go to ``https://mydopemailadmin.domain.tld``
+  * Créez-y un⋅e super administrateur⋅ice
+  * Configurez et terminez l'installation en suivant les instructions
   * Appréciez les nouveaux bogues et problèmes qui s'annoncent.

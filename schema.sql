@@ -52,7 +52,7 @@ CREATE TABLE pymailadmin_ownerships (
     is_primary TINYINT(1) DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY unique_ownership (admin_user_id, user_id),
-    FOREIGN KEY (admin_user_id) REFERENCES admin_users(id) ON DELETE CASCADE,
+    FOREIGN KEY (admin_user_id) REFERENCES pymailadmin_admin_users(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_admin_user (admin_user_id),
     INDEX idx_user (user_id)
@@ -65,8 +65,18 @@ CREATE TABLE `pymailadmin_recovery_keys` (
   `recovery_key` varchar(255) NOT NULL UNIQUE,
   `expiry` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+  FOREIGN KEY (`user_id`) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+
+-- Mailboxes creation pendings
+CREATE TABLE IF NOT EXISTS pymailadmin_creation_pending (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    token VARCHAR(64) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_email (email),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Reky pendings for when passwords change --
 CREATE TABLE pymailadmin_rekey_pending (

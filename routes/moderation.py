@@ -6,6 +6,9 @@ from handlers.html import html_template
 from libs import translations, config, parse_qs
 import logging
 
+PYMAILADMIN_URL = config['PYMAILADMIN_URL']
+PRETTY_NAME = config['PRETTY_NAME']
+
 def notify_admin_for_approval(email, role, reason):
     admins = fetch_all(config['sql']['select_admins_for_moderation'], ())
     if not admins:

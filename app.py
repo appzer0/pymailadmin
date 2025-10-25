@@ -3,6 +3,8 @@
 from middleware.session import SessionMiddleware
 from routes.login import login_handler
 from routes.dashboard import home_handler
+from routes.login import login_handler, setup_handler
+from routes.mailbox_creation import create_mailbox_handler
 from routes.user_management import (
     edit_alias_handler,
     add_alias_handler,
@@ -35,10 +37,24 @@ def application(environ, start_response):
     path = environ.get('PATH_INFO', '').rstrip('/')
 
     # Routes
-     if path == '/login':
+    if path == '' or path == '/':
+        start_response("302 Found", [("Location", "/login")])
+        return []
+    
+    if path == '/login':
         return login_handler(environ, start_response)
+    elif path == '/login/setup':
+        return setup_handler(environ, start_response)
+    elif path == '/setup/config':
+        return config_wizard_handler(environ, start_response)
     elif path == '/home':
         return home_handler(environ, start_response)
+    elif path == '/domain':
+        return domain_handler(environ, start_response)
+    elif path == '/mailbox':
+        return mailbox_handler(environ, start_response)
+    elif path == '/createmailbox':
+        return create_mailbox_handler(environ, start_response)        
     elif path == '/editalias':
         return edit_alias_handler(environ, start_response)
     elif path == '/addalias':
