@@ -19,48 +19,44 @@ logging.basicConfig(
     ]
 )
 
-### CHANGEME:
-
 # DATABASE
 DB_CONFIG = {
-    'host': '',  # MySQL IP
-    'user': '',  # MySQL db user
-    'password': '',  # MySQL db password
-    'database': '',  # MySQL db name
+    'host': '{DB_HOST}',  # MySQL IP
+    'user': '{DB_USER}',  # MySQL db user
+    'password': '{DB_PASSWORD}',  # MySQL db password
+    'database': '{DB_NAME}',  # MySQL db name
     'charset': 'utf8mb4'  # charset
 }
 
 # SQL REQUESTS
 
-# Customize the following requests with your Dovecot users and mailboxes
-# field names. Change "users" and "email":
-SQL_DELETE_USER_FROM_DOVECOT = "DELETE FROM users WHERE email = %s"
+# We have to customize the following requests with your actual Dovecot users
+# and mailboxes field names. Here, "users" and "email":
+SQL_DELETE_USER_FROM_DOVECOT = "DELETE FROM {DB_TABLE_USERS} WHERE {DB_FIELD_USER_EMAIL} = %s"
 
-# Change "users", "users.active" and "users.email" ONLY (do NOT touch
-# the "email" field inside the INNER JOIN!):
+# We change "users", "users.active" and "users.email" ONLY (NOT the "email"
+# field inside the INNER JOIN!):
 SQL_REACTIVATE_USER_TIMEOUT = """
-    UPDATE users
+    UPDATE {DB_TABLE_USERS}
     INNER JOIN (
         SELECT email FROM pymailadmin_rekey_pending
         WHERE created_at < NOW() - INTERVAL 15 MINUTE
-    ) AS expired ON users.email = expired.email
-    SET users.active = 1
+    ) AS expired ON {DB_TABLE_USERS}.{DB_FIELD_USER_EMAIL} = expired.email
+    SET {DB_TABLE_USERS}.{DB_FIELD_USER_ACTIVE} = 1
 """
 
-# For mailbox creation - adapt "users", "active", and "email":
+# For mailbox creation - we adapt "users", "active", and "email":
 SQL_SELECT_PENDING_CREATION = """
-    SELECT u.email, u.id as user_id
-    FROM users u
+    SELECT u.{DB_FIELD_USER_EMAIL}, u.{DB_FIELD_USER_ID} as user_id
+    FROM {DB_TABLE_USERS} u
     INNER JOIN pymailadmin_ownerships o ON u.id = o.user_id
-    LEFT JOIN pymailadmin_creation_pending cp ON u.email = cp.email
-    WHERE u.active = 1 
+    LEFT JOIN pymailadmin_creation_pending cp ON u.{DB_FIELD_USER_EMAIL} = cp.email
+    WHERE u.{DB_FIELD_USER_ACTIVE} = 1 
     AND cp.email IS NOT NULL
     AND cp.created_at < NOW() - INTERVAL 2 MINUTE
 """
 
-### END OF CHANGEME
-
-# Do not touch the following ones:
+# We do not touch the following ones:
 SQL_SELECT_PENDING_DELETION = "SELECT email FROM pymailadmin_deletion_pending WHERE created_at < NOW() - INTERVAL 48 HOUR"
 SQL_DELETE_PENDING_ENTRY = "DELETE FROM pymailadmin_deletion_pending WHERE email = %s"
 SQL_CLEANUP_EXPIRED_REKEY = "DELETE FROM pymailadmin_rekey_pending WHERE created_at < NOW() - INTERVAL 15 MINUTE"

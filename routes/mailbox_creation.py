@@ -1,10 +1,11 @@
 # routes/mailbox_creation.py
 
 from libs import config, parse_qs, datetime, timedelta, translations, argon2, bcrypt, sha512_crypt, sha256_crypt, pbkdf2_sha256
+import base64, secrets
+import hashlib
 from utils.db import fetch_all, execute_query
 from utils.limits import can_create_mailbox
 from handlers.html import html_template
-import hashlib
 import time
 import logging
 
@@ -55,9 +56,6 @@ def create_mailbox_handler(environ, start_response):
             <label for="quota">{translations['quota_label']} (MB)</label><br>
             <input type="number" id="quota" name="quota" value="1000" required {form_disabled}><br><br>
             
-            <label for="note">{translations['note_label']}</label><br>
-            <textarea id="note" name="note" {form_disabled}></textarea><br><br>
-            
             <button type="submit" {form_disabled}>{translations['btn_create']}</button>
             <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
         </form>
@@ -86,7 +84,8 @@ def create_mailbox_handler(environ, start_response):
         domain_id = data.get('domain_id', [''])[0]
         password = data.get('password', [''])[0]
         quota = data.get('quota', ['1000'])[0]
-        note = data.get('note', [''])[0].strip()
+        
+        admin_user_id = session.data['id']
         
         # Validation
         if not local_part or not domain_id or not password:
@@ -111,38 +110,40 @@ def create_mailbox_handler(environ, start_response):
         try:
             alg = config['mailbox_hash']['algorithm']
             prefix = config['mailbox_hash']['prefix']
-
-            if alg == 'argon2id':
-                password_hash = argon2.using(
-                    type='ID',
+            
+            # Generate unique salt, for Argon2I* hash algorithms only
+            if alg in ['argon2id', 'argon2i']:
+                salt_bytes = secrets.token_bytes(12)
+                salt = base64.urlsafe_b64encode(salt_bytes).decode()[:16]
+                hash_obj = argon2.using(
+                    type='ID' if alg == 'argon2id' else 'I',
+                    salt=salt,
                     time_cost=config['mailbox_hash']['argon2_time_cost'],
                     memory_cost=config['mailbox_hash']['argon2_memory_cost'],
                     parallelism=config['mailbox_hash']['argon2_parallelism']
-                ).hash(password)
-            elif alg == 'argon2i':
-                password_hash = argon2.using(
-                    type='I',
-                    time_cost=config['mailbox_hash']['argon2_time_cost'],
-                    memory_cost=config['mailbox_hash']['argon2_memory_cost'],
-                    parallelism=config['mailbox_hash']['argon2_parallelism']
-                ).hash(password)
+                )
+                hashed = hash_obj.hash(password)
+                # Extract passlib hash ("$argon2id$v=...$...$salt$hash")
+                parts = hashed.split('$')
+                salt_part = parts[-2]
+                hash_part = parts[-1]
+                # Dovecot-style format
+                crypt_value = f"{prefix}${salt_part}${hash_part}"
             elif alg == 'bcrypt':
-                password_hash = bcrypt.using(rounds=config['mailbox_hash']['bcrypt_rounds']).hash(password)
+                crypt_value = prefix + bcrypt.using(rounds=config['mailbox_hash']['bcrypt_rounds']).hash(password)
             elif alg == 'sha512-crypt':
-                password_hash = sha512_crypt.hash(password)
+                crypt_value = prefix + sha512_crypt.hash(password)
             elif alg == 'sha256-crypt':
-                password_hash = sha256_crypt.hash(password)
+                crypt_value = prefix + sha256_crypt.hash(password)
             elif alg == 'pbkdf2':
-                password_hash = pbkdf2_sha256.using(rounds=config['mailbox_hash']['pbkdf2_rounds']).hash(password)
+                crypt_value = prefix + pbkdf2_sha256.using(rounds=config['mailbox_hash']['pbkdf2_rounds']).hash(password)
             else:
                 raise ValueError("Unsupported hash algorithm")
-
-            crypt_value = prefix + password_hash
-
+            
             # Insert mailbox
             user_id = execute_query(
                 config['sql_dovecot']['insert_user'], 
-                (domain_id, email, crypt_value, quota, note, 1)  # active=1
+                (domain_id, email, crypt_value, quota, 1)  # active=1
             )
             
             # Add ownership

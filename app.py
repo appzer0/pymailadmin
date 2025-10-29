@@ -3,7 +3,6 @@
 from middleware.session import SessionMiddleware
 from routes.login import login_handler
 from routes.dashboard import home_handler
-from routes.login import login_handler, setup_handler
 from routes.mailbox_creation import create_mailbox_handler
 from routes.user_management import (
     edit_alias_handler,
@@ -19,6 +18,8 @@ from routes.moderation import (
 )
 from routes.register import register_handler
 from handlers.static import static_handler
+from utils import check_super_admin_exists
+from routes.initial_setup import initial_setup_handler
 
 import logging
 import os
@@ -35,18 +36,22 @@ logging.basicConfig(
 
 def application(environ, start_response):
     path = environ.get('PATH_INFO', '').rstrip('/')
-
+    
+    # If superadmin does not exist, route to the initial-setup wizard
+    if not check_super_admin_exists():
+        if path != '/setup/config':
+            start_response("302 Found", [("Location", "/setup/config")])
+            return []
+            
     # Routes
     if path == '' or path == '/':
         start_response("302 Found", [("Location", "/login")])
         return []
     
-    if path == '/login':
-        return login_handler(environ, start_response)
-    elif path == '/login/setup':
-        return setup_handler(environ, start_response)
-    elif path == '/setup/config':
+    if path == '/setup/config':
         return config_wizard_handler(environ, start_response)
+    elif path == '/login':
+        return login_handler(environ, start_response)
     elif path == '/home':
         return home_handler(environ, start_response)
     elif path == '/domain':

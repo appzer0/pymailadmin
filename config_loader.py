@@ -39,7 +39,6 @@ def load_db_schema():
         'field_user_email': os.getenv('DB_FIELD_USER_EMAIL', 'email'),
         'field_user_password': os.getenv('DB_FIELD_USER_PASSWORD', 'crypt'),
         'field_user_quota': os.getenv('DB_FIELD_USER_QUOTA', 'quota'),
-        'field_user_note': os.getenv('DB_FIELD_USER_NOTE', 'note'),
         'field_user_active': os.getenv('DB_FIELD_USER_ACTIVE', 'active'),
         
         # Aliases table
@@ -62,7 +61,7 @@ def generate_sql_queries(schema):
     
     # Users queries
     sql_users = {
-        'insert_user': f"INSERT INTO {schema['table_users']} ({schema['field_user_domain_id']}, {schema['field_user_email']}, {schema['field_user_password']}, {schema['field_user_quota']}, {schema['field_user_note']}, {schema['field_user_active']}) VALUES (?, ?, ?, ?, ?, ?)",
+        'insert_user': f"INSERT INTO {schema['table_users']} ({schema['field_user_domain_id']}, {schema['field_user_email']}, {schema['field_user_password']}, {schema['field_user_quota']}, {schema['field_user_active']}) VALUES (?, ?, ?, ?, ?)",
         'select_user_by_id_in': f"SELECT * FROM {schema['table_users']} WHERE {schema['field_user_id']} IN ({{user_ids}})",
         'select_users_by_domain': f"SELECT * FROM {schema['table_users']} WHERE {schema['field_user_domain_id']} = ?",
         'select_user_by_id': f"SELECT * FROM {schema['table_users']} WHERE {schema['field_user_id']} = ?",
@@ -114,8 +113,8 @@ dynamic_config = {
     'PYMAILADMIN_URL': os.getenv('PYMAILADMIN_URL', 'https://mailadmin.liberta.email'),
     
     'limits': {
-        'max_mailboxes_per_user': int(os.getenv('MAX_MAILBOXES_PER_USER', 3))
-        'max_aliases_per_mailbox': int(os.getenv('MAX_ALIASES_PER_MAILBOX', 100))  # ← NOUVEAU
+        'max_mailboxes_per_user': int(os.getenv('MAX_MAILBOXES_PER_USER', 3)),
+        'max_aliases_per_mailbox': int(os.getenv('MAX_ALIASES_PER_MAILBOX', 100))
     },
     
     'security': {
