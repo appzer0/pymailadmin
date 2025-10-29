@@ -82,7 +82,7 @@ Copy/clone repository somewhere, e.g. /var/www/pymailadmin, then:
 
 #### Customize .env environment file, READ IT AND EDIT IT CAREFULLY
 You will mostly have to pay attention when customizing the tables and fields names for Dovecot.
-You may modify the latter in the first-time setup in pymailadmin.
+You may modify the latter in the first-time setup in pymailadmin (much easier).
 
 ``cd /var/www/pymailadmin && cp .env.example .env``
 
@@ -110,29 +110,8 @@ You may modify the latter in the first-time setup in pymailadmin.
 ### Start the service
 ``systemctl enable --nox pymailadmin.service``
 
-#### Install the connector to manage deletions and rekeys
-Install the pymailadmin connector for Dovecot **ON THE DOVECOT HOST** to process pending creations/deletions, cleanups and expired rekey requests:
-
-Install the needed packages:
-
-``apt install python3 python3-mysqldb``
-
-Install ``scripts/pymailadmin-cron.py`` somewhere, e.g.: ``/opt/pymailadmin/scripts``
-
-Edit the script:
-``vim /opt/pymailadmin/scripts/pymailadmin-cron.py``
-
-READ IT AND EDIT IT CAREFULLY.
-You'll have to modify:
-  * your database connection parameters
-  * Adapt 3 SQL requests to your database (what you've already done before in .env)
-
-Install the crontask :
-``*/2 * * * * root /usr/bin/python3 /opt/pymailadmin/scripts/pymailadmin-cron.py``
-
 #### Access the web admin
   * Go to ``https://mydopemailadmin.domain.tld``
-  * Create a super admin account there
   * Configure and finish installation by following the instuctions
   * Enjoy new incoming bugs and problems.
 
@@ -218,9 +197,9 @@ Copier/clonez le dépôt quelque part, par ex. : /var/www/pymailadmin, puis :
 
 ### Configuration
 
-#### Personnliasez le fichier .env, LISEZ-LE ET ÉDITEZ-LE MINUTIEUSEMENT
+#### Personnalisez le fichier .env, LISEZ-LE ET ÉDITEZ-LE MINUTIEUSEMENT
 Vous aurez notamment à bien faire attention en personnalisant les noms des tables et des champs pour Dovecot.
-Vous pourrez modifier ces derniers dans la première mise en service dans pymailadmin.
+Vous pourrez modifier ces derniers dans l'assistant de pymailadmin (bien plus facile).
 
 ``cd /var/www/pymailadmin && cp .env.example .env``
 
@@ -248,28 +227,7 @@ Vous pourrez modifier ces derniers dans la première mise en service dans pymail
 ### Démarrez le service
 ``systemctl enable --nox pymailadmin.service``
 
-#### Installez le connecteur pour gérer les suppressions et rekey
-Installez le connector pymailadmin pour Dovecot **SUR LE SERVEUR DOVECOT** pour traiter les créations/suppressions de boites mail et le nettoyage des demandes et des rekey ayant expiré:
-
-Installez les paquets nécessaires:
-
-``apt install python3 python3-mysqldb``
-
-Installez ``scripts/pymailadmin-cron.py`` quelque part, ex. : ``/opt/pymailadmin/scripts``
-
-Éditez le script:
-``vim /opt/pymailadmin/scripts/pymailadmin-cron.py``
-
-LISEZ-LE ET ÉDITEZ-LE MINUTIEUSEMENT.
-Vous devrez modifier :
-  * vos paramètres de connexion à la base de données
-  * 3 requêtes SQL pour les adapter à votre base (que vous avez déjà fait dans .env)
-
-Installez la tâche planifié cron :
-``*/2 * * * * root /usr/bin/python3 /opt/pymailadmin/scripts/mail-delete-cron.py``
-
 #### Accédez à l'interface web
-  * Go to ``https://mydopemailadmin.domain.tld``
-  * Créez-y un⋅e super administrateur⋅ice
+  * Allez sur ``https://mydopemailadmin.domain.tld``
   * Configurez et terminez l'installation en suivant les instructions
   * Appréciez les nouveaux bogues et problèmes qui s'annoncent.
