@@ -24,6 +24,8 @@ import logging
 import os
 log_dir = '/var/log/pymailadmin'
 
+from libs import config
+
 logging.basicConfig(
     level=logging.ERROR,
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
