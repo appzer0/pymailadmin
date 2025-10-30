@@ -10,15 +10,17 @@ import logging
 # Database connection
 def get_db_connection():
     try:
+        db_conf = config['db']
         connection = mysql.connector.connect(
-            host=config['db']['host'],
-            database=config['db']['dbname'],
-            user=config['db']['username'],
-            password=config['db']['password'],
-            charset=config['db']['charset'],
+            host=db_conf['host'],
+            database=db_conf['dbname'],
+            user=db_conf['username'],
+            password=db_conf['password'],
+            charset=db_conf.get('charset', 'utf8mb4'),
             autocommit=True
         )
         return connection
+    
     except Error as e:
         logging.error(f"Error when connecting to database: {e}")
         return None

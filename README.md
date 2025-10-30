@@ -93,6 +93,17 @@ You may modify the latter in the first-time setup in pymailadmin (much easier).
 
 ``chmod -R 750 /var/www/pymailadmin``
 
+#### Create log dir and fix permissions:
+``mkdir /var/log/pymailadmin``
+
+``chown -R pymailadmin: /var/log/pymailadmin``
+
+``chmod -R 755 /var/log/pymailadmin``
+
+``chown -R pymailadmin:pymailadmin /var/www/pymailadmin``
+
+``chmod -R 750 /var/www/pymailadmin``
+
 #### Customize systemd service file``
 ``vim /etc/systemd/system/pymailadmin.service``
 
@@ -106,6 +117,8 @@ You may modify the latter in the first-time setup in pymailadmin (much easier).
 ``vim /etc/nginx/sites-enabled/pymailadmin.conf``
 
 ``systemctl reload nginx``
+
+Make sure you have a TLS certificate (with ``certbot`` or another tool).
 
 ### Start the service
 ``systemctl enable --now pymailadmin.service``
@@ -205,7 +218,13 @@ Vous pourrez modifier ces derniers dans l'assistant de pymailadmin (bien plus fa
 
 ``vim .env``
 
-#### Corrigez les permissions:
+#### Créez le répertoire pour les logs et corrigez les permissions :
+``mkdir /var/log/pymailadmin``
+
+``chown -R pymailadmin: /var/log/pymailadmin``
+
+``chmod -R 755 /var/log/pymailadmin``
+
 ``chown -R pymailadmin:pymailadmin /var/www/pymailadmin``
 
 ``chmod -R 750 /var/www/pymailadmin``
@@ -223,6 +242,8 @@ Vous pourrez modifier ces derniers dans l'assistant de pymailadmin (bien plus fa
 ``vim /etc/nginx/sites-enabled/pymailadmin.conf``
 
 ``systemctl reload nginx``
+
+Assurez-vous d'avoir un certificat TLS (via ``certbot`` ou autre).
 
 ### Démarrez le service
 ``systemctl enable --now pymailadmin.service``

@@ -8,8 +8,7 @@ import time
 import secrets
 from urllib.parse import parse_qs
 from datetime import datetime, timedelta
-from ..config_data import config
-from ..config_loader import load_config
+from .config import config
 from utils.db import execute_query, fetch_all
 from email.mime.text import MIMEText
 import smtplib

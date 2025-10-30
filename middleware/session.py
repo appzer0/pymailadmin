@@ -74,7 +74,10 @@ def SessionMiddleware(app, secret=None):
             records = fetch_all(config['sql']['select_session_by_id'], (unsigned_id,))
             if records:
                 session.data = json.loads(records[0]['data'])
-
+        else:
+            # Generate now session ID if absent or invalid
+            session.id = uuid.uuid4().hex
+        
         environ['session'] = session
 
         def custom_start_response(status, headers, exc_info=None):

@@ -26,7 +26,7 @@ def get_available_languages():
             display_name = locale
         languages.append({'code': locale, 'name': display_name})
     languages.sort(key=lambda x: x['code'])
-    return languages if languages else [{'code': 'en-US', 'name': 'English (US)'}]
+    return languages if languages else [{'code': 'en_US', 'name': 'English (US)'}]
 
 def load_translations(locale_code):
     module_name = locale_code.replace('-', '_')
@@ -404,7 +404,7 @@ def config_wizard_handler(environ, start_response):
             
             if not email or '@' not in email:
                 return [config_wizard_page(session, 2, error_msg=trans.get('invalid_email'), data=form_data, locale=locale).encode()]
-            if len(password) < 8:
+            if len(password) < 12:
                 return [config_wizard_page(session, 2, error_msg=trans.get('password_too_short'), data=form_data, locale=locale).encode()]
             if password != password_confirm:
                 return [config_wizard_page(session, 2, error_msg=trans.get('password_mismatch'), data=form_data, locale=locale).encode()]

@@ -18,8 +18,7 @@ from routes.moderation import (
 )
 from routes.register import register_handler
 from handlers.static import static_handler
-from utils import check_super_admin_exists
-from routes.initial_setup import initial_setup_handler
+from utils.check_super_admin_exists import check_super_admin_exists
 
 import logging
 import os

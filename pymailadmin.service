@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=notify
-ExecStart=/usr/local/bin/gunicorn \
+ExecStart=/var/www/pymailadmin/venv/bin/gunicorn \
     --worker-class sync \
     --workers 2 \
     --bind 127.0.0.1:8686 \
@@ -13,37 +13,28 @@ ExecStart=/usr/local/bin/gunicorn \
     --max-requests-jitter 100 \
     --error-logfile /var/log/pymailadmin/error.log \
     --timeout 120 \
-    --preload app:app
+    --preload \
+    app:app
 ExecReload=/bin/kill -s HUP $MAINPID
 ExecStop=/bin/kill -s TERM $MAINPID
 TimeoutStopSec=10
 
 # Logs
-StandardOutput=null
-StandardError=null
+StandardOutput=journal
+StandardError=journal
 
 # Unprivileged user
 User=pymailadmin
 Group=pymailadmin
 
-# Namespace
-PrivateTmp=true
-PrivateDevices=true
-ProtectSystem=strict
-ProtectHome=true
-NoNewPrivileges=true
-
-# Capacities
-CapabilityBoundingSet=CAP_NET_BIND_SERVICE
-AmbientCapabilities=CAP_NET_BIND_SERVICE
-
 # Files
-ReadWritePaths=/var/log/pymailadmin
+ReadWritePaths=/var/log/pymailadmin /var/www/pymailadmin/venv
 ReadOnlyPaths=/var/www/pymailadmin
 InaccessiblePaths=/etc/passwd
 
 # Environment
 WorkingDirectory=/var/www/pymailadmin
+Environment=PATH=/var/www/pymailadmin/venv/bin
 Environment=PYTHONUNBUFFERED=1
 
 # Restart policy
