@@ -108,7 +108,7 @@ You may modify the latter in the first-time setup in pymailadmin (much easier).
 ``systemctl reload nginx``
 
 ### Start the service
-``systemctl enable --nox pymailadmin.service``
+``systemctl enable --now pymailadmin.service``
 
 #### Access the web admin
   * Go to ``https://mydopemailadmin.domain.tld``
@@ -225,7 +225,7 @@ Vous pourrez modifier ces derniers dans l'assistant de pymailadmin (bien plus fa
 ``systemctl reload nginx``
 
 ### Démarrez le service
-``systemctl enable --nox pymailadmin.service``
+``systemctl enable --now pymailadmin.service``
 
 #### Accédez à l'interface web
   * Allez sur ``https://mydopemailadmin.domain.tld``
