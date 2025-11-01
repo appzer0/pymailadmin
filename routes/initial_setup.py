@@ -348,22 +348,18 @@ def config_wizard_page(session, step=1, error_msg=None, data=None, locale='en-US
         }}
         </script>
         """
-
-    else:
-        # fallback
-        return first_setup_page(session, 'Invalid step')
     
     return html_template(trans.get('config_wizard_title','Configuration'), content)
 
 def config_wizard_handler(environ, start_response):
-    session = environ.get('session', None)
-    if not session or not session.data.get('logged_in') or session.data.get('role') != 'super_admin':
-        start_response("302 Found", [("Location", "/login")])
-        return []
-    
     if check_config_completed():
         start_response("302 Found", [("Location", "/home")])
-        return []
+        return [b""]
+    
+    session = environ.get('session', None)
+    if not session:
+        start_response("302 Found", [("Location", "/login")])
+        return [b""]
     
     if environ['REQUEST_METHOD'] == 'GET':
         params = parse_qs(environ.get('QUERY_STRING',''))
@@ -452,8 +448,13 @@ def config_wizard_handler(environ, start_response):
         elif step == 6:
             logging.info("Configuration wizard completed")
             start_response("302 Found", [("Location", "/home")])
-            return []
+            return [b""]
 
         else:
             start_response("302 Found", [("Location", "/home")])
-            return []
+            return [b""]
+
+    else:
+        start_response("400 Bad Request", [("Content-Type", "text/html")])
+        return [b"Invalid request method"]
+        

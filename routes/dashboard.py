@@ -102,7 +102,6 @@ def home_handler(environ, start_response):
         </tbody>
     </table>
     
-    <p><a href="/logout">{translations['logout_link']}</a></p>
     """
     
     body = html_template(translations['dashboard_title'], content)
@@ -221,9 +220,7 @@ def domain_handler(environ, start_response):
     content = f"""
     <h2>{translations['domain_mailboxes_title'].format(domain=domain_name)}</h2>
     
-    <p><a href="/home">{translations['back_to_domains']}</a></p>
-    
-    <table border="1">
+    <table>
         <thead>
             <tr>
                 <th>{translations['email_col']}</th>

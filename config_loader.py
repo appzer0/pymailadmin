@@ -54,22 +54,22 @@ def generate_sql_queries(schema):
     
     # Domains queries
     sql_domains = {
-        'select_domain_by_name': f"SELECT * FROM {schema['table_domains']} WHERE {schema['field_domain_name']} = ?",
-        'select_domain_by_id': f"SELECT * FROM {schema['table_domains']} WHERE {schema['field_domain_id']} = ?",
+        'select_domain_by_name': f"SELECT * FROM {schema['table_domains']} WHERE {schema['field_domain_name']} = %s",
+        'select_domain_by_id': f"SELECT * FROM {schema['table_domains']} WHERE {schema['field_domain_id']} = %s",
         'select_all_domains': f"SELECT {schema['field_domain_id']}, {schema['field_domain_name']} FROM {schema['table_domains']}",
     }
     
     # Users queries
     sql_users = {
-        'insert_user': f"INSERT INTO {schema['table_users']} ({schema['field_user_domain_id']}, {schema['field_user_email']}, {schema['field_user_password']}, {schema['field_user_quota']}, {schema['field_user_active']}) VALUES (?, ?, ?, ?, ?)",
+        'insert_user': f"INSERT INTO {schema['table_users']} ({schema['field_user_domain_id']}, {schema['field_user_email']}, {schema['field_user_password']}, {schema['field_user_quota']}, {schema['field_user_active']}) VALUES (%s, %s, %s, %s, %s)",
         'select_user_by_id_in': f"SELECT * FROM {schema['table_users']} WHERE {schema['field_user_id']} IN ({{user_ids}})",
-        'select_users_by_domain': f"SELECT * FROM {schema['table_users']} WHERE {schema['field_user_domain_id']} = ?",
-        'select_user_by_id': f"SELECT * FROM {schema['table_users']} WHERE {schema['field_user_id']} = ?",
-        'select_user_by_email': f"SELECT * FROM {schema['table_users']} WHERE {schema['field_user_email']} = ?",
-        'update_user_password': f"UPDATE {schema['table_users']} SET {schema['field_user_password']} = ? WHERE {schema['field_user_id']} = ?",
-        'update_user_email': f"UPDATE {schema['table_users']} SET {schema['field_user_email']} = ? WHERE {schema['field_user_id']} = ?",
-        'disable_user': f"UPDATE {schema['table_users']} SET {schema['field_user_active']} = 0 WHERE {schema['field_user_email']} = ?",
-        'delete_user': f"DELETE FROM {schema['table_users']} WHERE {schema['field_user_id']} = ?",
+        'select_users_by_domain': f"SELECT * FROM {schema['table_users']} WHERE {schema['field_user_domain_id']} = %s",
+        'select_user_by_id': f"SELECT * FROM {schema['table_users']} WHERE {schema['field_user_id']} = %s",
+        'select_user_by_email': f"SELECT * FROM {schema['table_users']} WHERE {schema['field_user_email']} = %s",
+        'update_user_password': f"UPDATE {schema['table_users']} SET {schema['field_user_password']} = %s WHERE {schema['field_user_id']} = %s",
+        'update_user_email': f"UPDATE {schema['table_users']} SET {schema['field_user_email']} = %s WHERE {schema['field_user_id']} = %s",
+        'disable_user': f"UPDATE {schema['table_users']} SET {schema['field_user_active']} = 0 WHERE {schema['field_user_email']} = %s",
+        'delete_user': f"DELETE FROM {schema['table_users']} WHERE {schema['field_user_id']} = %s",
         
         # Hybrid query with pymailadmin_ownerships
         'count_active_mailboxes_by_owner': f"""
@@ -93,14 +93,14 @@ def generate_sql_queries(schema):
     
     # Aliases queries
     sql_aliases = {
-        'insert_alias': f"INSERT INTO {schema['table_aliases']} ({schema['field_alias_domain_id']}, {schema['field_alias_source']}, {schema['field_alias_destination']}) VALUES (?, ?, ?)",
-        'select_alias_by_id': f"SELECT * FROM {schema['table_aliases']} WHERE {schema['field_alias_id']} = ?",
-        'select_alias_by_domain': f"SELECT * FROM {schema['table_aliases']} WHERE {schema['field_alias_domain_id']} = ?",
-        'select_alias_by_mailbox': f"SELECT * FROM {schema['table_aliases']} WHERE {schema['field_alias_domain_id']} = ? AND {schema['field_alias_destination']} = ?",
-        'select_alias_by_source': f"SELECT * FROM {schema['table_aliases']} WHERE {schema['field_alias_source']} = ?",
-        'count_aliases_by_mailbox': f"SELECT COUNT(*) as count FROM {schema['table_aliases']} WHERE {schema['field_alias_destination']} = ?",
-        'update_alias': f"UPDATE {schema['table_aliases']} SET {schema['field_alias_source']} = ?, {schema['field_alias_destination']} = ? WHERE {schema['field_alias_id']} = ?",
-        'delete_alias': f"DELETE FROM {schema['table_aliases']} WHERE {schema['field_alias_id']} = ?",
+        'insert_alias': f"INSERT INTO {schema['table_aliases']} ({schema['field_alias_domain_id']}, {schema['field_alias_source']}, {schema['field_alias_destination']}) VALUES (%s, %s, %s)",
+        'select_alias_by_id': f"SELECT * FROM {schema['table_aliases']} WHERE {schema['field_alias_id']} = %s",
+        'select_alias_by_domain': f"SELECT * FROM {schema['table_aliases']} WHERE {schema['field_alias_domain_id']} = %s",
+        'select_alias_by_mailbox': f"SELECT * FROM {schema['table_aliases']} WHERE {schema['field_alias_domain_id']} = %s AND {schema['field_alias_destination']} = %s",
+        'select_alias_by_source': f"SELECT * FROM {schema['table_aliases']} WHERE {schema['field_alias_source']} = %s",
+        'count_aliases_by_mailbox': f"SELECT COUNT(*) as count FROM {schema['table_aliases']} WHERE {schema['field_alias_destination']} = %s",
+        'update_alias': f"UPDATE {schema['table_aliases']} SET {schema['field_alias_source']} = %s, {schema['field_alias_destination']} = %s WHERE {schema['field_alias_id']} = %s",
+        'delete_alias': f"DELETE FROM {schema['table_aliases']} WHERE {schema['field_alias_id']} = %s",
     }
     
     # Merge all queries

@@ -84,7 +84,7 @@ def approve_registration_handler(environ, start_response):
         start_response("500 Internal Server Error", [("Content-Type", "text/html")])
         return [translations['approval_failed'].encode('utf-8')]
     start_response("302 Found", [("Location", "/moderate/pending")])
-    return []
+    return [b""]
 
 def deny_registration_handler(environ, start_response):
     session = environ.get('session', None)
@@ -99,13 +99,13 @@ def deny_registration_handler(environ, start_response):
         return [translations['missing_email'].encode('utf-8')]
     execute_query(config['sql']['delete_registration_by_email'], (email,))
     start_response("302 Found", [("Location", "/moderate/pending")])
-    return []
+    return [b""]
 
 def moderation_queue_handler(environ, start_response):
     session = environ.get('session', None)
     if not session or not session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/login")])
-        return []
+        return [b""]
     if session.data.get('role') not in ['admin', 'super_admin']:
         start_response("403 Forbidden", [("Content-Type", "text/html")])
         return [translations['forbidden_access'].encode('utf-8')]

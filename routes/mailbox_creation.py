@@ -13,7 +13,7 @@ def create_mailbox_handler(environ, start_response):
     session = environ.get('session', None)
     if not session or not session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/login")])
-        return []
+        return [b""]
 
     admin_user_id = session.data['id']
     
@@ -53,8 +53,8 @@ def create_mailbox_handler(environ, start_response):
             <label for="password">{translations['password_label']}</label><br>
             <input type="password" id="password" name="password" required {form_disabled}><br><br>
             
-            <label for="quota">{translations['quota_label']} (MB)</label><br>
-            <input type="number" id="quota" name="quota" value="1000" required {form_disabled}><br><br>
+            <label for="quota">{translations['quota_label']}</label><br>
+            <input type="number" id="quota" name="quota" value="5G" min="1" max="5" required {form_disabled}> GB<br><br>
             
             <button type="submit" {form_disabled}>{translations['btn_create']}</button>
             <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
@@ -158,7 +158,7 @@ def create_mailbox_handler(environ, start_response):
             logging.info(f"Mailbox {email} created and marked for doveadm initialization")
             
             start_response("302 Found", [("Location", "/home")])
-            return []
+            return [b""]
 
         except Exception as e:
             logging.error(f"Error creating mailbox: {e}")

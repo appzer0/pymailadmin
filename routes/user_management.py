@@ -13,9 +13,9 @@ from i18n.en_US import translations
 # --- Aliases management ---
 def edit_alias_handler(environ, start_response):
     session = environ.get('session', None)
-    if not session or not session.data.get('logged_in'):
+    if session is None or not session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/login")])
-        return []
+        return [b""]
 
     if environ['REQUEST_METHOD'] == 'GET':
         query_string = environ.get('QUERY_STRING', '')
@@ -83,7 +83,7 @@ def edit_alias_handler(environ, start_response):
         try:
             execute_query(config['sql_dovecot']['update_alias'], (new_source, new_destination, int(alias_id)))
             start_response("302 Found", [("Location", "/home")])
-            return []
+            return [b""]
         except Exception as e:
             start_response("500 Internal Server Error", [("Content-Type", "text/html")])
             logging.error(f"Error when updating alias: {e}")
@@ -92,9 +92,9 @@ def edit_alias_handler(environ, start_response):
 # --- Aliases creations ---
 def add_alias_handler(environ, start_response):
     session = environ.get('session', None)
-    if not session or not session.data.get('logged_in'):
+    if session is None or not session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/login")])
-        return []
+        return [b""]
 
     if environ['REQUEST_METHOD'] == 'GET':
         # Extract destination from URL
@@ -177,7 +177,7 @@ def add_alias_handler(environ, start_response):
         try:
             execute_query(config['sql_dovecot']['insert_alias'], (domain_id, source, destination))
             start_response("302 Found", [("Location", "/home")])
-            return []
+            return [b""]
         except Exception as e:
             start_response("500 Internal Server Error", [("Content-Type", "text/html")])
             logging.error(f"Error when adding alias: {e}")
@@ -186,9 +186,9 @@ def add_alias_handler(environ, start_response):
 # --- Mailbox edits ---
 def edit_user_handler(environ, start_response):
     session = environ.get('session', None)
-    if not session or not session.data.get('logged_in'):
+    if session is None or not session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/login")])
-        return []
+        return [b""]
 
     if environ['REQUEST_METHOD'] == 'GET':
         query_string = environ.get('QUERY_STRING', '')
@@ -302,7 +302,7 @@ def edit_user_handler(environ, start_response):
                 execute_query(config['sql']['insert_rekey_pending'], (email, token, token))
             
             start_response("302 Found", [("Location", "/home")])
-            return []
+            return [b""]
 
         except Exception as e:
             logging.error(f"Error when modifying: {e}")
@@ -312,9 +312,9 @@ def edit_user_handler(environ, start_response):
 # --- Mailbox deletion ---
 def delete_user_handler(environ, start_response):
     session = environ.get('session', None)
-    if not session or not session.data.get('logged_in'):
+    if session is None or not session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/login")])
-        return []
+        return [b""]
 
     if environ['REQUEST_METHOD'] == 'GET':
         query_string = environ.get('QUERY_STRING', '')
@@ -405,7 +405,7 @@ def delete_user_handler(environ, start_response):
                         
             # Redirect to confirmation message
             start_response("302 Found", [("Location", "/home")])
-            return []
+            return [b""]
         
         except Exception as e:
             logging.error(f"Error when creating pending deletion: {e}")
