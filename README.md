@@ -88,10 +88,22 @@ You may modify the latter in the first-time setup in pymailadmin (much easier).
 
 ``vim .env``
 
-#### Fix permissions:
+#### Create log directory and fix permissions:
+``mkdir /var/log/pymailadmin``
+
+``chown -R pymailadmin: /var/log/pymailadmin``
+
+``chmod -R 755 /var/log/pymailadmin``
+
 ``chown -R pymailadmin:pymailadmin /var/www/pymailadmin``
 
 ``chmod -R 750 /var/www/pymailadmin``
+
+Allow your web server user (www-data, httpd, etc.) to reach static dir:
+
+``setfacl -R -m u:www-data:rx /var/www/pymailadmin/static``
+
+``setfacl -m u:www-data:rx /var/www/pymailadmin``
 
 #### Create log dir and fix permissions:
 ``mkdir /var/log/pymailadmin``
@@ -228,6 +240,12 @@ Vous pourrez modifier ces derniers dans l'assistant de pymailadmin (bien plus fa
 ``chown -R pymailadmin:pymailadmin /var/www/pymailadmin``
 
 ``chmod -R 750 /var/www/pymailadmin``
+
+Autorisez votre serveur HTTP (www-data, httpd, etc.) à atteindre le répertoire static :
+
+``setfacl -R -m u:www-data:rx /var/www/pymailadmin/static``
+
+``setfacl -m u:www-data:rx /var/www/pymailadmin``
 
 #### Personnalisez le fichier du service systemd``
 ``vim /etc/systemd/system/pymailadmin.service``
