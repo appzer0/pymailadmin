@@ -9,6 +9,25 @@ import logging
 import sys
 from datetime import datetime
 
+### Customize the variables below to match your database structure.
+
+# Database settings:
+DB_HOST = '127.0.0.1'           # MySQL IP
+DB_USER = 'sqluser'             # MySQL db user
+DB_PASSWORD = 'sqlpassword'     # MySQL db password
+DB_NAME = 'dbname'              # MySQL db name
+
+# Users table:
+DB_TABLE_USERS = 'users'
+
+# Columns names from users' table:
+DB_FIELD_USER_EMAIL = 'email'
+DB_FIELD_USER_ID = 'id'
+DB_FIELD_USER_ACTIVE = 'active'
+
+### End of customize part.
+### Don't edit the code below! ###
+
 # LOGGING
 logging.basicConfig(
     level=logging.INFO,
@@ -32,11 +51,11 @@ DB_CONFIG = {
 
 # We have to customize the following requests with your actual Dovecot users
 # and mailboxes field names. Here, "users" and "email":
-SQL_DELETE_USER_FROM_DOVECOT = "DELETE FROM {DB_TABLE_USERS} WHERE {DB_FIELD_USER_EMAIL} = %s"
+SQL_DELETE_USER_FROM_DOVECOT = f"DELETE FROM {DB_TABLE_USERS} WHERE {DB_FIELD_USER_EMAIL} = %s"
 
 # We change "users", "users.active" and "users.email" ONLY (NOT the "email"
 # field inside the INNER JOIN!):
-SQL_REACTIVATE_USER_TIMEOUT = """
+SQL_REACTIVATE_USER_TIMEOUT = f"""
     UPDATE {DB_TABLE_USERS}
     INNER JOIN (
         SELECT email FROM pymailadmin_rekey_pending
@@ -46,10 +65,10 @@ SQL_REACTIVATE_USER_TIMEOUT = """
 """
 
 # For mailbox creation - we adapt "users", "active", and "email":
-SQL_SELECT_PENDING_CREATION = """
-    SELECT u.{DB_FIELD_USER_EMAIL}, u.{DB_FIELD_USER_ID} as user_id
+SQL_SELECT_PENDING_CREATION = f"""
+    SELECT u.{DB_FIELD_USER_EMAIL}, u.{DB_FIELD_USER_ID} AS user_id
     FROM {DB_TABLE_USERS} u
-    INNER JOIN pymailadmin_ownerships o ON u.id = o.user_id
+    INNER JOIN pymailadmin_ownerships o ON u.{DB_FIELD_USER_ID} = o.user_id
     LEFT JOIN pymailadmin_creation_pending cp ON u.{DB_FIELD_USER_EMAIL} = cp.email
     WHERE u.{DB_FIELD_USER_ACTIVE} = 1 
     AND cp.email IS NOT NULL
