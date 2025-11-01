@@ -132,12 +132,33 @@ Allow your web server user (www-data, httpd, etc.) to reach static dir:
 
 Make sure you have a TLS certificate (with ``certbot`` or another tool).
 
+#### Install the Dovecot connector ON YOUR DOVECOT HOST
+Copy the connector on your Dovecot host:
+
+``cp scripts/pymailadmin-cron.py /opt/pymailadmin/pymailadmin-cron.py``
+
+Edit it. Put your database connection settings again at the top.
+Customize the table name and columns names to match yours (4 variables).
+
+You'll need those packageson your Dovecot host:
+
+``apt install python3 python3-mysqldb ``
+
+Create a cron task, e.g.:
+
+``*/2 * * * * root /usr/bin/python3 /opt/pymailadmin/scripts/pymailadmin-cron.py``
+
 ### Start the service
 ``systemctl enable --now pymailadmin.service``
 
+#### Create s superadmin
+  * Create a salted hash of your password, here's an example for an Argon2ID hash:
+    * ``echo -n 'My@Pass*word!' | argon2 "$(pwgen -Ans 16 1)" -id -t 3 -p 2 -m 16 -e``
+  * Create a superadmin in your database:
+  * ``INSERT INTO pymailadmin_admin_users (email, password_hash, role, active) VALUES ('email@example.org', '$argon2id$v=19$m=65536,t=3,p=2$XXXXXXXXXXXXIXX', 'super_admin', '1');``
+  
 #### Access the web admin
   * Go to ``https://mydopemailadmin.domain.tld``
-  * Configure and finish installation by following the instuctions
   * Enjoy new incoming bugs and problems.
 
 ## French / Français
@@ -263,10 +284,31 @@ Autorisez votre serveur HTTP (www-data, httpd, etc.) à atteindre le répertoire
 
 Assurez-vous d'avoir un certificat TLS (via ``certbot`` ou autre).
 
+#### Installez le connecteur Dovecot SUR VOTRE SERVEUR DOVECOT
+Copiez le connecteur sur votre serveur Dovecot :
+
+``cp scripts/pymailadmin-cron.py /opt/pymailadmin/pymailadmin-cron.py``
+
+Editez-le. Mettez à nouveau vos paramètres de connexion à la base de données.
+Modifiez le nom de la table et des colonnes avec les vôtres (4 variables).
+
+Vous aurez besoin des ces paquets sur votre serveur Dovecot:
+
+``apt install python3 python3-mysqldb ``
+
+Créez une tâche planifiée cron, par ex. :
+
+``*/2 * * * * root /usr/bin/python3 /opt/pymailadmin/scripts/pymailadmin-cron.py``
+
 ### Démarrez le service
 ``systemctl enable --now pymailadmin.service``
 
+#### Créez un⋅e superadmin
+  * Créez un hash salé de votre mot de passe, ici par exemple pour Argon2ID :
+    * ``echo -n 'My@Pass*word!' | argon2 "$(pwgen -Ans 16 1)" -id -t 3 -p 2 -m 16 -e``
+  * Créez un⋅e superadmin dans la base de données :
+  * ``INSERT INTO pymailadmin_admin_users (email, password_hash, role, active) VALUES ('email@example.org', '$argon2id$v=19$m=65536,t=3,p=2$XXXXXXXXXXXXIXX', 'super_admin', '1');``
+  
 #### Accédez à l'interface web
   * Allez sur ``https://mydopemailadmin.domain.tld``
-  * Configurez et terminez l'installation en suivant les instructions
   * Appréciez les nouveaux bogues et problèmes qui s'annoncent.
