@@ -1,5 +1,5 @@
 [Unit]
-Description=PyMailAdmin - Web administration interface for mail server
+Description=pymailadmin - Web administration interface for mail server
 After=network.target
 
 [Service]
@@ -39,10 +39,7 @@ Environment=PYTHONUNBUFFERED=1
 
 # Restart policy
 Restart=always
-RestartSec=10
-
-# Watchdog
-WatchdogSec=30
+RestartSec=60
 
 [Install]
 WantedBy=multi-user.target
