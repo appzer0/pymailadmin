@@ -16,6 +16,8 @@ def create_mailbox_handler(environ, start_response):
         return [b""]
 
     admin_user_id = session.data['id']
+    admin_user_email = session.data.get('email', '')
+    admin_role = session.data.get('role', 'user')
     
     # Check limit
     can_create, current_count, max_count = can_create_mailbox(admin_user_id)
@@ -61,7 +63,7 @@ def create_mailbox_handler(environ, start_response):
         </form>
         """
         
-        body = html_template(translations['create_mailbox_title'], form)
+        body = html_template(translations['create_mailbox_title'], form,admin_user_email=admin_user_email,admin_role=admin_role)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
 

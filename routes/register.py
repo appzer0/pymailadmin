@@ -35,7 +35,8 @@ def register_handler(environ, start_response):
             <button type="submit">{translations['btn_register']}</button>
         </form>
         """
-        body = html_template(translations['register_title'], content)
+        
+        body = html_template(translations['register_title'], content,admin_user_email=None,admin_role=None)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
 

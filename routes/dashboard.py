@@ -16,7 +16,8 @@ def home_handler(environ, start_response):
 
     admin_user_id = session.data['id']
     admin_role = session.data.get('role', 'user')
-    
+    admin_user_email = session.data.get('email', '')
+        
     # Get all domains
     try:
         domains = fetch_all(config['sql_dovecot']['select_all_domains'], ())
@@ -104,7 +105,7 @@ def home_handler(environ, start_response):
     
     """
     
-    body = html_template(translations['dashboard_title'], content)
+    body = html_template(translations['dashboard_title'], content, admin_user_email=admin_user_email, admin_role=admin_role)
     start_response("200 OK", [("Content-Type", "text/html")])
     return [body.encode()]
 
@@ -127,6 +128,7 @@ def domain_handler(environ, start_response):
     
     admin_user_id = session.data['id']
     admin_role = session.data.get('role', 'user')
+    admin_user_email = session.data.get('email', '')
     
     # Get domain info
     try:
@@ -235,7 +237,7 @@ def domain_handler(environ, start_response):
     </table>
     """
     
-    body = html_template(translations['domain_mailboxes_title'].format(domain=domain_name), content)
+    body = html_template(translations['domain_mailboxes_title'].format(domain=domain_name), content, admin_user_email=admin_user_email, admin_role=admin_role)
     start_response("200 OK", [("Content-Type", "text/html")])
     return [body.encode()]
 
@@ -258,6 +260,7 @@ def mailbox_handler(environ, start_response):
     
     admin_user_id = session.data['id']
     admin_role = session.data.get('role', 'user')
+    admin_user_email = session.data.get('email', '')
     
     # Check ownership (skip for super_admin)
     if admin_role != 'super_admin':
@@ -372,6 +375,6 @@ def mailbox_handler(environ, start_response):
     </table>
     """
     
-    body = html_template(translations['mailbox_details_title'], content)
+    body = html_template(translations['mailbox_details_title'], content, admin_user_email=admin_user_email, admin_role=admin_role)
     start_response("200 OK", [("Content-Type", "text/html")])
     return [body.encode()]

@@ -13,7 +13,7 @@ translations = {
     'forbidden_access': 'Forbidden access',
     'not_found': 'Not Found',
     'internal_server_error': 'Internal Server Error',
-
+    
     # === routes/login.py ===
     'login_title': 'Admin Login',
     'email_label': 'Email address:',
@@ -42,6 +42,12 @@ translations = {
     'email_already_exists': 'An account with this email already exists.',
     'setup_failed': 'Failed to create super admin account. Please check the logs and try again.',
     
+    # === routes/html.py ===
+    'menu_home_link': 'Home',
+    'menu_dashboard_link': 'Dashboard',
+    'menu_domains_link': 'Domains',
+    'menu_mailboxes_link': 'Mailboxes',
+    'menu_logout_link': 'Logout',
 
     # === routes/register.py ===
     'register_title': 'Register',

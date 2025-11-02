@@ -19,7 +19,7 @@ def get_config():
         config = {**static_config, **dynamic_config}
     return config
 
-# Exposer config object
+# Expose config object
 config = get_config()
 
 import time

@@ -16,7 +16,7 @@ def edit_alias_handler(environ, start_response):
     if session is None or not session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/login")])
         return [b""]
-
+    
     if environ['REQUEST_METHOD'] == 'GET':
         query_string = environ.get('QUERY_STRING', '')
         params = parse_qs(query_string)
@@ -30,7 +30,10 @@ def edit_alias_handler(environ, start_response):
         if not alias:
             start_response("404 Not Found", [("Content-Type", "text/html")])
             return [translations['alias_not_found'].encode('utf-8')]
-
+        
+        admin_user_email = session.data.get('email', '')
+        admin_role = session.data.get('role', 'user')
+        
         # Generate form
         form = f"""
         <form method="POST">
@@ -44,7 +47,7 @@ def edit_alias_handler(environ, start_response):
             <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
         </form>
         """
-        body = html_template(translations['edit_alias_title'], form)
+        body = html_template(translations['edit_alias_title'], form,admin_user_email=admin_user_email,admin_role=admin_role)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
 
@@ -115,8 +118,11 @@ def add_alias_handler(environ, start_response):
         else:
             warning = f'<p>{translations["alias_count_display"].format(count=current_count, max=max_count)}</p>'
             form_disabled = ''
-        # Generate form
         
+        admin_user_email = session.data.get('email', '')
+        admin_role = session.data.get('role', 'user')
+        
+        # Generate form
         form = f"""
         {warning}
         <form method="POST">
@@ -129,7 +135,7 @@ def add_alias_handler(environ, start_response):
             <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
         </form>
         """
-        body = html_template(translations['add_alias_title'], form)
+        body = html_template(translations['add_alias_title'], form,admin_user_email=admin_user_email,admin_role=admin_role)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
 
@@ -150,27 +156,32 @@ def add_alias_handler(environ, start_response):
         if not source or not destination:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['source_required'].encode('utf-8')]
+        
         if '@' not in destination:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['destination_invalid'].encode('utf-8')]
         
         # Re-check aliases limit
         can_create, current_count, max_count = can_create_alias(destination)
+        
         if not can_create:
             start_response("403 Forbidden", [("Content-Type", "text/html")])
             return [translations['error_alias_limit_exceeded'].format(count=max_count).encode('utf-8')]
 
         # Verifiy existing alias
         existing = fetch_all(config['sql_dovecot']['select_alias_by_source'], (source,))
+        
         if existing:
             start_response("409 Conflict", [("Content-Type", "text/html")])
             return [translations['alias_exists'].encode('utf-8')]
 
         # Fetch domain_id
         user = fetch_all(config['sql_dovecot']['select_user_by_email'], (destination,))
+        
         if not user:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['destination_unknown'].encode('utf-8')]
+        
         domain_id = user[0]['domain_id']
 
         # insert new alias
@@ -178,6 +189,7 @@ def add_alias_handler(environ, start_response):
             execute_query(config['sql_dovecot']['insert_alias'], (domain_id, source, destination))
             start_response("302 Found", [("Location", "/home")])
             return [b""]
+        
         except Exception as e:
             start_response("500 Internal Server Error", [("Content-Type", "text/html")])
             logging.error(f"Error when adding alias: {e}")
@@ -203,7 +215,10 @@ def edit_user_handler(environ, start_response):
         if not user:
             start_response("404 Not Found", [("Content-Type", "text/html")])
             return [translations['user_not_found'].encode('utf-8')]
-  
+        
+        admin_user_email = session.data.get('email', '')
+        admin_role = session.data.get('role', 'user')
+    
         form = f"""
         <form method="POST">
             <input type="hidden" name="user_id" value="{user_id}">
@@ -216,7 +231,7 @@ def edit_user_handler(environ, start_response):
             <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
         </form>
         """
-        body = html_template(translations['edit_user_title'], form)
+        body = html_template(translations['edit_user_title'], form,admin_user_email=admin_user_email,admin_role=admin_role)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
 
@@ -330,6 +345,9 @@ def delete_user_handler(environ, start_response):
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['user_not_found'].encode('utf-8')]
         
+        admin_user_email = session.data.get('email', '')
+        admin_role = session.data.get('role', 'user')
+    
         form = f"""
         <p><strong>{translations['deletion_warning_title']}</strong></p>
         <p>{translations['deletion_warning_intro']}</p>
@@ -343,7 +361,7 @@ def delete_user_handler(environ, start_response):
             <a href="/home"><button type="button">{translations['btn_no_cancel']}</button></a>
         </form>
         """
-        body = html_template(translations['confirm_deletion_title'], form)
+        body = html_template(translations['confirm_deletion_title'], form,admin_user_email=admin_user_email,admin_role=admin_role)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
 
