@@ -17,6 +17,7 @@ from routes.moderation import (
     deny_registration_handler
 )
 from routes.register import register_handler
+from routes.logout import logout_handler
 from handlers.static import static_handler
 from utils.check_super_admin_exists import check_super_admin_exists
 from routes.initial_setup import config_wizard_handler
@@ -85,6 +86,8 @@ def application(environ, start_response):
             response = approve_registration_handler(environ, start_response)
         elif path == '/moderate/deny':
             response = deny_registration_handler(environ, start_response)
+        elif path == '/logout':
+            response = logout_handler(environ, start_response)
         else:
             start_response("302 Found", [("Location", "/login")])
             return [b"Redirecting to login (fallback)"]
