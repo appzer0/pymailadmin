@@ -231,7 +231,7 @@ def edit_user_handler(environ, start_response):
             <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
         </form>
         """
-        body = html_template(translations['edit_user_title'], form,admin_user_email=admin_user_email,admin_role=admin_role)
+        body = html_template(translations['edit_user_title'], form, admin_user_email=admin_user_email, admin_role=admin_role)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
 

@@ -82,7 +82,6 @@ Copy/clone repository somewhere, e.g. /var/www/pymailadmin, then:
 
 #### Customize .env environment file, READ IT AND EDIT IT CAREFULLY
 You will mostly have to pay attention when customizing the tables and fields names for Dovecot.
-You may modify the latter in the first-time setup in pymailadmin (much easier).
 
 ``cd /var/www/pymailadmin && cp .env.example .env``
 
@@ -140,7 +139,7 @@ Copy the connector on your Dovecot host:
 Edit it. Put your database connection settings again at the top.
 Customize the table name and columns names to match yours (4 variables).
 
-You'll need those packageson your Dovecot host:
+You'll need those packages on your Dovecot host:
 
 ``apt install python3 python3-mysqldb ``
 
@@ -245,7 +244,6 @@ Copier/clonez le dépôt quelque part, par ex. : /var/www/pymailadmin, puis :
 
 #### Personnalisez le fichier .env, LISEZ-LE ET ÉDITEZ-LE MINUTIEUSEMENT
 Vous aurez notamment à bien faire attention en personnalisant les noms des tables et des champs pour Dovecot.
-Vous pourrez modifier ces derniers dans l'assistant de pymailadmin (bien plus facile).
 
 ``cd /var/www/pymailadmin && cp .env.example .env``
 

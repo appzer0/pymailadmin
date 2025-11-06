@@ -42,14 +42,14 @@ config = {
         # Pending registrations
         'insert_admin_registration': "INSERT INTO pymailadmin_admin_registrations (email, password_hash, confirmation_hash, expires_at, reason) VALUES (%s, %s, %s, %s, %s)",
         'delete_admin_registration_by_email': "DELETE FROM pymailadmin_admin_registrations WHERE email = %s",
-        'select_admin_registration_by_email_unconfirmed': "SELECT * FROM pymailadmin_admin_registrations WHERE email = %s AND confirmed = 0 AND expires_at > NOW()",
+        'select_admin_registration_by_email_unconfirmed': "SELECT * FROM pymailadmin_admin_registrations WHERE email = %s AND confirmed = 1 AND expires_at > NOW()",
         'select_admin_registration_by_hash_unconfirmed': "SELECT * FROM pymailadmin_admin_registrations WHERE confirmation_hash = %s AND expires_at > NOW() AND confirmed = 0",
         'confirm_admin_registration': "UPDATE pymailadmin_admin_registrations SET confirmed = 1 WHERE id = %s",
-        'select_pending_registrations': "SELECT email, role, reason FROM pymailadmin_admin_registrations WHERE confirmed = 1 AND expires_at > NOW()",
+        'select_pending_registrations': "SELECT email, reason FROM pymailadmin_admin_registrations WHERE confirmed = 1 AND expires_at > NOW()",
         'insert_user_from_registration': "INSERT INTO pymailadmin_admin_users (email, password_hash, role, active) VALUES (%s, %s, %s, 1)",
         'select_admin_registration_by_hash_unconfirmed': "SELECT * FROM pymailadmin_admin_registrations WHERE confirmation_hash = %s AND expires_at > NOW() AND confirmed = 0",
         'delete_registration_by_email': "DELETE FROM pymailadmin_admin_registrations WHERE email = %s",
-        'select_admins_for_moderation': "SELECT email FROM pymailadmin_admin_users WHERE role = 'admin' AND active = 1",
+        'select_superadmins_for_moderation': "SELECT email FROM pymailadmin_admin_users WHERE role = 'super_admin' AND active = 1",
         
         # Pending creations for mailboxes
         'insert_creation_pending': 'INSERT INTO pymailadmin_creation_pending (email, token) VALUES (%s, %s) ON DUPLICATE KEY UPDATE token = %s',

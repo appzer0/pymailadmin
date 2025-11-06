@@ -98,14 +98,17 @@ def create_mailbox_with_doveadm(email):
         )
         logging.info(f"[DOVEADM] Created mailbox for: {email}")
         return True
+    
     except subprocess.CalledProcessError as e:
         # Mailbox might already exist, check stderr
         stderr = e.stderr.decode()
+    
         if "already exists" in stderr.lower():
             logging.warning(f"[DOVEADM] Mailbox already exists for: {email}")
             return True
         logging.error(f"[DOVEADM] Creation failed for {email}: {stderr}")
         return False
+    
     except Exception as e:
         logging.error(f"[DOVEADM] Unexpected error creating {email}: {e}")
         return False

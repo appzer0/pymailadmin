@@ -14,14 +14,12 @@ PRETTY_NAME = config['PRETTY_NAME']
 
 def register_handler(environ, start_response):
     session = environ['session']
-    
     if session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/home")])
         return [b""]
-    
+
     if environ['REQUEST_METHOD'] == 'GET':
         session.get_csrf_token()
-        
         content = f"""
         <form method="POST">
             <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
@@ -29,14 +27,12 @@ def register_handler(environ, start_response):
             <input type="email" name="email" required><br><br>
             <label>{translations['password_label']}</label><br>
             <input type="password" name="password" required><br><br>
-            <input type="hidden" name="role" value="user">
             <label>{translations['reason_label']}</label><br>
             <textarea name="reason" required></textarea><br><br>
             <button type="submit">{translations['btn_register']}</button>
         </form>
         """
-        
-        body = html_template(translations['register_title'], content,admin_user_email=None,admin_role=None)
+        body = html_template(translations['register_title'], content, admin_user_email=None, admin_role=None)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
 
@@ -53,7 +49,6 @@ def register_handler(environ, start_response):
 
         email = data.get('email', [''])[0].strip()
         password = data.get('password', [''])[0]
-        role = data.get('role', ['user'])[0]
         reason = data.get('reason', [''])[0].strip()
 
         if not email or '@' not in email:
@@ -77,29 +72,31 @@ def register_handler(environ, start_response):
             memory_cost=config['security']['argon2id']['memory_cost'] // 1024,
             parallelism=config['security']['argon2id']['threads']
         ).hash(password)
-
         confirmation_hash = secrets.token_urlsafe(64)
         expires_at = datetime.now() + timedelta(hours=48)
 
         try:
-            
-            execute_query(config['sql']['insert_admin_registration'],(email, password_hash, confirmation_hash, expires_at, reason))
-        
+            execute_query(
+                config['sql']['insert_admin_registration'],
+                (email, password_hash, confirmation_hash, expires_at, reason)
+            )
         except Exception as e:
-            logging.error(f"DB error during registration: {e}", exc_info=True)
+            logging.error(f"DB error: {e}", exc_info=True)
             start_response("500 Internal Server Error", [("Content-Type", "text/html")])
             return [translations['internal_server_error'].encode('utf-8')]
 
-        confirm_url = f"{PYMAILADMIN_URL}register/confirm?hash={confirmation_hash}"
-        email_body_template = translations['email_confirm_body']
-        email_body = email_body_template.format(confirm_url=confirm_url)
+        # Send confirmation mail
+        confirm_url = f"{PYMAILADMIN_URL}/register/confirm?hash={confirmation_hash}"
+        email_body = translations['email_confirm_body'].format(confirm_url=confirm_url)
         subject = f"[{PRETTY_NAME}] {translations['email_confirm_subject']}"
-
+        
         if not send_email(email, subject, email_body):
             start_response("500 Internal Server Error", [("Content-Type", "text/html")])
             return [translations['email_sent_failed'].encode('utf-8')]
 
+        # Success message
         content = f"<p>{translations['registration_saved']}</p>"
         body = html_template(translations['register_title'], content)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
+        

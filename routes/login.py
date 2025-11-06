@@ -15,18 +15,18 @@ def login_page(session, error_msg=None):
     error_html = f'<p style="color: red; font-weight: bold;">{error_msg}</p>' if error_msg else ''
     
     content = f"""
-    <div style="max-width: 400px; margin: 0 auto; padding: 20px;">
+    <div>
         {error_html}
         <form method="POST">
             <input type="hidden" name="csrf_token" value="{token}">
             
             <label for="email">{translations['email_label']}</label><br>
-            <input type="email" id="email" name="email" placeholder="your@email.com" required style="width: 100%; padding: 8px; margin-bottom: 10px;"><br>
+            <input type="email" id="email" name="email" placeholder="your@email.com" required><br>
             
             <label for="password">{translations['password_label']}</label><br>
-            <input type="password" id="password" name="password" required style="width: 100%; padding: 8px; margin-bottom: 15px;"><br>
+            <input type="password" id="password" name="password" required><br>
             
-            <button type="submit" style="width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+            <button type="submit">
                 {translations['btn_login']}
             </button>
         </form>

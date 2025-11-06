@@ -28,7 +28,7 @@ CREATE TABLE `pymailadmin_admin_registrations` (
   `email` varchar(128) NOT NULL UNIQUE,
   `password_hash` varchar(255) NOT NULL,
   `reason` text NOT NULL,
-  `confirmation_hash` varchar(64) NOT NULL UNIQUE,
+  `confirmation_hash` varchar(128) NOT NULL UNIQUE,
   `expires_at` datetime NOT NULL,
   `confirmed` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`)

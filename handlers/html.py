@@ -34,14 +34,17 @@ def html_template(title, content, admin_user_email=None, admin_role=None):
     <html lang="{translations['html_lang']}">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{pretty_name} - {title}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="color-scheme" content="light dark">
         <link rel="stylesheet" href="/static/{css_path}">
+        <title>{pretty_name} - {title}</title>
     </head>
     <body>
-        {menu}
-        <h1>{title}</h1>
-        {content}
+        <main class="container">
+            {menu}
+            <h1>{title}</h1>
+            {content}
+        </main>
     </body>
     </html>
     """

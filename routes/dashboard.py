@@ -71,27 +71,28 @@ def home_handler(environ, start_response):
         can_create, current_count, max_count = can_create_mailbox(admin_user_id)
         counter_color = "red" if not can_create else "green"
         counter_html = f"""
-        <div style="margin-bottom: 20px; padding: 10px; border: 2px solid {counter_color}; border-radius: 5px;">
+        <div style="{counter_color};>
             <strong>{translations['mailbox_count_display'].format(count=current_count, max=max_count)}</strong>
         </div>
         """
         
         if can_create:
             create_btn = f'<a href="/createmailbox"><button>{translations["create_mailbox_btn"]}</button></a>'
+        
         else:
-            create_btn = f'<button disabled style="opacity: 0.5; cursor: not-allowed;">{translations["create_mailbox_btn_disabled"]}</button>'
+            create_btn = f'<button disabled="disabled">{translations["create_mailbox_btn_disabled"]}</button>'
+            
     else:
         counter_html = ""
         create_btn = ""
     
     content = f"""
-    <h2>{translations['dashboard_title']}</h2>
+    <h2>{translations['domains_list_title']}</h2>
     
     {counter_html}
     {create_btn}
     
-    <h3>{translations['domains_list_title']}</h3>
-    <table border="1">
+    <table>
         <thead>
             <tr>
                 <th>{translations['domain_col']}</th>
@@ -113,6 +114,7 @@ def home_handler(environ, start_response):
 def domain_handler(environ, start_response):
     """Display mailboxes for a specific domain"""
     session = environ.get('session', None)
+    
     if not session or not session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/login")])
         return []
@@ -133,10 +135,13 @@ def domain_handler(environ, start_response):
     # Get domain info
     try:
         domain = fetch_all(config['sql_dovecot']['select_domain_by_id'], (int(domain_id),))
+    
         if not domain:
             start_response("404 Not Found", [("Content-Type", "text/html")])
             return [b"Domain not found"]
+    
         domain_name = domain[0]['domain']
+    
     except Exception as e:
         logging.error(f"Error fetching domain: {e}")
         start_response("500 Internal Server Error", [("Content-Type", "text/html")])
@@ -150,6 +155,7 @@ def domain_handler(environ, start_response):
                 config['sql_dovecot']['select_users_by_domain'], 
                 (int(domain_id),)
             )
+        
         else:
             # Regular users see only their owned mailboxes
             owned_ids_result = fetch_all(config['sql']['select_user_ids_by_owner'], (admin_user_id,))
@@ -161,6 +167,7 @@ def domain_handler(environ, start_response):
                     (int(domain_id),)
                 )
                 users_data = [u for u in users_in_domain if u['id'] in owned_ids]
+            
             else:
                 users_data = []
                 
@@ -173,6 +180,7 @@ def domain_handler(environ, start_response):
         rekey_emails = [r['email'] for r in fetch_all(config['sql']['select_all_rekey_pending'], ())]
         deletion_emails = [r['email'] for r in fetch_all(config['sql']['select_all_deletion_pending'], ())]
         creation_emails = [r['email'] for r in fetch_all(config['sql']['select_all_creation_pending'], ())]
+    
     except Exception as e:
         logging.error(f"Error fetching pending states: {e}")
         rekey_emails = []
@@ -181,6 +189,7 @@ def domain_handler(environ, start_response):
     
     # Build mailbox rows
     rows = ""
+    
     for user in users_data:
         email = user['email']
         user_id = user['id']
@@ -191,22 +200,27 @@ def domain_handler(environ, start_response):
         # Determine status
         if email in creation_emails:
             status = translations['creation_status']
+    
         elif email in rekey_emails:
             status = translations['rekey_status']
+    
         elif email in deletion_emails:
             status = translations['deletion_status']
+    
         else:
             status = translations['active_status']
         
         # Actions column (only for non-super_admin)
         if admin_role == 'super_admin':
             actions = f'<a href="/mailbox?id={user_id}">{translations["btn_view"]}</a>'
+    
         else:
             # Check if can add alias
             can_add_alias, _, max_aliases = can_create_alias(email)
             
             if email in creation_emails or email in rekey_emails or email in deletion_emails:
                 actions = f"<em>{translations['pending']}</em>"
+    
             else:
                 actions = f'<a href="/mailbox?id={user_id}">{translations["btn_manage"]}</a>'
         
@@ -220,7 +234,7 @@ def domain_handler(environ, start_response):
         """
     
     content = f"""
-    <h2>{translations['domain_mailboxes_title'].format(domain=domain_name)}</h2>
+    <h2>{domain_name}</h2>
     
     <table>
         <thead>
@@ -245,6 +259,7 @@ def domain_handler(environ, start_response):
 def mailbox_handler(environ, start_response):
     """Display detailed view of a specific mailbox with aliases"""
     session = environ.get('session', None)
+    
     if not session or not session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/login")])
         return []
@@ -266,9 +281,11 @@ def mailbox_handler(environ, start_response):
     if admin_role != 'super_admin':
         try:
             is_owner = fetch_all(config['sql']['is_owner'], (admin_user_id, int(user_id)))
+            
             if not is_owner:
                 start_response("403 Forbidden", [("Content-Type", "text/html")])
                 return [translations['ownership_required'].encode('utf-8')]
+        
         except Exception as e:
             logging.error(f"Error checking ownership: {e}")
             start_response("500 Internal Server Error", [("Content-Type", "text/html")])
@@ -277,6 +294,7 @@ def mailbox_handler(environ, start_response):
     # Get mailbox info
     try:
         user = fetch_all(config['sql_dovecot']['select_user_by_id'], (int(user_id),))
+        
         if not user:
             start_response("404 Not Found", [("Content-Type", "text/html")])
             return [b"Mailbox not found"]
@@ -309,10 +327,13 @@ def mailbox_handler(environ, start_response):
     
     # Build alias rows
     alias_rows = ""
+    
     for alias in aliases:
+        
         # Actions (only for non-super_admin)
         if admin_role == 'super_admin':
             actions = ""
+        
         else:
             actions = f'<a href="/editalias?id={alias["id"]}">{translations["btn_modify"]}</a>'
         
@@ -326,10 +347,13 @@ def mailbox_handler(environ, start_response):
     
     # Add alias button (only for non-super_admin)
     if admin_role != 'super_admin':
+        
         if can_add_alias:
             add_alias_btn = f'<a href="/addalias?destination={email}"><button>{translations["btn_add_alias"]}</button></a>'
+        
         else:
             add_alias_btn = f'<button disabled style="opacity: 0.5; cursor: not-allowed;">{translations["btn_add_alias"]} ({translations["limit_reached"]})</button>'
+    
     else:
         add_alias_btn = ""
     
@@ -342,6 +366,7 @@ def mailbox_handler(environ, start_response):
             <a href="/deleteuser?id={user_id}"><button style="background: red; color: white;">{translations["btn_delete"]}</button></a>
         </p>
         """
+    
     else:
         actions_section = ""
     

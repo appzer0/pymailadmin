@@ -39,35 +39,107 @@ def create_mailbox_handler(environ, start_response):
             warning = f'<p>{translations["mailbox_count_display"].format(count=current_count)}</p>'
             form_disabled = ''
         
-        form = f"""
-        {warning}
-        <form method="POST">
-            <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
-            
-            <label for="local_part">{translations['local_part_label']}</label><br>
-            <input type="text" id="local_part" name="local_part" placeholder="username" required {form_disabled}><br><br>
-            
-            <label for="domain_id">{translations['domain_label']}</label><br>
-            <select id="domain_id" name="domain_id" required {form_disabled}>
-                {domain_options}
-            </select><br><br>
-            
-            <label for="password">{translations['password_label']}</label><br>
-            <input type="password" id="password" name="password" required {form_disabled}><br><br>
-            
-            <label for="quota">{translations['quota_label']}</label><br>
-            <input type="number" id="quota" name="quota" value="5G" min="1" max="5" required {form_disabled}> GB<br><br>
-            
-            <button type="submit" {form_disabled}>{translations['btn_create']}</button>
-            <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
-        </form>
+        form_html = f"""
+            {warning}
+            <form method="POST" id="mailboxForm">
+                <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
+                
+                <fieldset>
+                    <legend>{translations['mailbox_creation_mailbox']}</legend>
+                    
+                    <label for="local_part">{translations['local_part_label']}</label><br>
+                    <input type="text" id="local_part" name="local_part" placeholder="username" minlength="6" pattern="^[a-z0-9_-]+$" required {form_disabled}><br>
+                    <small>{translations['mailbox_creation_mailbox_hint']}</small><br><br>
+                    
+                    <label for="domain_id">{translations['domain_label']}</label><br>
+                    <select id="domain_id" name="domain_id" required {form_disabled}>
+                        {domain_options}
+                    </select><br>
+                    <small>{translations['mailbox_creation_domain_hint']}</small><br><br>
+                </fieldset>
+
+                <fieldset>
+                    <legend>{translations['mailbox_creation_password']}</legend>
+
+                    <label for="password">{translations['password_label']}</label><br>
+                    <input type="password" id="password" name="password" minlength="12" pattern="[^%]+" required {form_disabled}><br>
+                    <small>{translations['mailbox_creation_password_hint']}</small><br><br>
+
+                    <label for="password_confirm">{translations['confirm_password_label']}</label><br>
+                    <input type="password" id="password_confirm" name="password_confirm" minlength="12" pattern="[^%]+" required {form_disabled}><br>
+                    <small>{translations['mailbox_creation_passwords_match_hint']}</small><br><br>
+                </fieldset>
+
+                <fieldset>
+                    <legend>{translations['mailbox_creation_quota']}</legend>
+
+                    <label for="quota">{translations['quota_label']}</label><br>
+                    <input type="number" id="quota" name="quota" min="1" max="5" value="1" required {form_disabled}><br>
+                    <small>{translations['mailbox_creation_quota_hint']}</small><br><br>
+                </fieldset>
+                
+                <div id="preview" style="align:center font-weight:bold; font-size:1.3em; margin-bottom:15px; color:red;">
+                    ?@domain.tld (X GB)
+                </div>
+                
+                <button type="submit" {form_disabled}>{translations['btn_create']}</button>
+                <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
+            </form>
         """
         
-        body = html_template(translations['create_mailbox_title'], form,admin_user_email=admin_user_email,admin_role=admin_role)
+        script_js = """
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const localPart = document.getElementById('local_part');
+                const domainSelect = document.getElementById('domain_id');
+                const quotaInput = document.getElementById('quota');
+                const preview = document.getElementById('preview');
+                const password = document.getElementById('password');
+                const passwordConfirm = document.getElementById('password_confirm');
+
+                function validateLocalPart(str) {
+                    return /^[a-z0-9_-]{6,}$/.test(str);
+                }
+
+                function validatePassword(pwd) {
+                    return pwd.length >=12 && !pwd.includes('%');
+                }
+
+                function updatePreview() {
+                    const email = localPart.value + '@' + (domainSelect.options[domainSelect.selectedIndex]?.text || '');
+                    const quota = quotaInput.value || 'X';
+                    let valid = true;
+
+                    // Validate all fields
+                    if (!validateLocalPart(localPart.value)) valid = false;
+                    if (!validatePassword(password.value)) valid = false;
+                    if (password.value !== passwordConfirm.value) valid = false;
+                    if (!(quota >= 1 && quota <= 5)) valid = false;
+                    if (!domainSelect.value) valid = false;
+
+                    preview.textContent = email + " (" + quota + " GB)";
+                    preview.style.color = valid ? 'green' : 'red';
+                }
+
+                localPart.addEventListener('input', updatePreview);
+                domainSelect.addEventListener('change', updatePreview);
+                quotaInput.addEventListener('input', updatePreview);
+                password.addEventListener('input', updatePreview);
+                passwordConfirm.addEventListener('input', updatePreview);
+
+                updatePreview(); // initial preview update
+            });
+            </script>
+        """
+        
+        form = form_html + script_js
+        
+        body = html_template(translations['create_mailbox_title'], form, admin_user_email=admin_user_email, admin_role=admin_role)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
 
     elif environ['REQUEST_METHOD'] == 'POST':
+        
         # Re-check limit (security)
         if not can_create:
             start_response("403 Forbidden", [("Content-Type", "text/html")])
@@ -78,6 +150,7 @@ def create_mailbox_handler(environ, start_response):
         data = parse_qs(post_data)
         
         csrf_token = data.get('csrf_token', [''])[0]
+        
         if not session.validate_csrf_token(csrf_token):
             start_response("403 Forbidden", [("Content-Type", "text/html")])
             return [translations['csrf_invalid'].encode('utf-8')]
@@ -113,32 +186,49 @@ def create_mailbox_handler(environ, start_response):
             alg = config['mailbox_hash']['algorithm']
             prefix = config['mailbox_hash']['prefix']
             
-            # Generate unique salt, for Argon2I* hash algorithms only
+            # Argon2 hashing
             if alg in ['argon2id', 'argon2i']:
-                salt_bytes = secrets.token_bytes(12)
-                salt = base64.urlsafe_b64encode(salt_bytes).decode()[:16]
+                
+                if alg == 'argon2id':
+                    argon2_type = 'ID'
+                
+                if alg == 'argon2i':
+                    argon2_type = 'I'
+                
+                # Generate unique salt
+                salt_bytes = secrets.token_bytes(16)
+                
+                # Salted-hash the password
                 hash_obj = argon2.using(
-                    type='ID' if alg == 'argon2id' else 'I',
-                    salt=salt,
+                    type=argon2_type,
+                    salt=salt_bytes,
                     time_cost=config['mailbox_hash']['argon2_time_cost'],
                     memory_cost=config['mailbox_hash']['argon2_memory_cost'],
                     parallelism=config['mailbox_hash']['argon2_parallelism']
                 )
                 hashed = hash_obj.hash(password)
+                
                 # Extract passlib hash ("$argon2id$v=...$...$salt$hash")
                 parts = hashed.split('$')
                 salt_part = parts[-2]
                 hash_part = parts[-1]
+                
                 # Dovecot-style format
                 crypt_value = f"{prefix}${salt_part}${hash_part}"
+            
+            # Other algos hashing
             elif alg == 'bcrypt':
                 crypt_value = prefix + bcrypt.using(rounds=config['mailbox_hash']['bcrypt_rounds']).hash(password)
+            
             elif alg == 'sha512-crypt':
                 crypt_value = prefix + sha512_crypt.hash(password)
+            
             elif alg == 'sha256-crypt':
                 crypt_value = prefix + sha256_crypt.hash(password)
+            
             elif alg == 'pbkdf2':
                 crypt_value = prefix + pbkdf2_sha256.using(rounds=config['mailbox_hash']['pbkdf2_rounds']).hash(password)
+            
             else:
                 raise ValueError("Unsupported hash algorithm")
             
@@ -151,7 +241,7 @@ def create_mailbox_handler(environ, start_response):
             # Add ownership
             execute_query(
                 config['sql']['add_ownership'],
-                (admin_user_id, user_id, 1)  # is_primary=1
+                (admin_user_id, user_id, 1)  # is_primary=1 (unimplemented)
             )
             
             token = hashlib.sha256(f"{email}{config['SECRET_KEY']}{int(time.time()/120)}".encode()).hexdigest()

@@ -18,6 +18,7 @@ translations = {
     'login_title': 'Admin Login',
     'email_label': 'Email address:',
     'password_label': 'Password:',
+    'confirm_password_label': 'Password confirmation',
     'btn_login': 'Login',
     'invalid_email': 'Invalid email address.',
     'invalid_credentials': 'Invalid credentials.',
@@ -62,7 +63,7 @@ translations = {
     'email_confirm_subject': 'Confirm your registration',
     'email_moderation_subject': 'Register Requests',
     'email_confirm_body': 'Confirm by clicking on: {confirm_url}',
-    'email_moderation_body': 'Email: {email}\nRole: {role}\nReason: {reason}\nAccept: {approve_url}\nDecline: {deny_url}',
+    'email_moderation_body': 'Email: {email}\nReason: {reason}\nView: {moderation_pending_url}',
 
     # === routes/moderation.py ===
     'moderation_title': 'Registration Moderation',
@@ -83,6 +84,8 @@ translations = {
     'missing_email': 'Missing email',
     'missing_hash': 'Missing hash',
     'invalid_hash': 'Invalid confirmation or already processed',
+    'email_confirmed_registration_subject': 'Your registration is accepted',
+    'email_confirmed_registration_body': 'Your registration has been accepted by our moderation team. Welcome!\nLogin : {login_url}',
 
     # === routes/user_management.py ===
     'edit_alias_title': 'Modify an alias',
@@ -125,13 +128,13 @@ translations = {
     'deletion_failed': 'Error when creating pending deletion',
 
     # === routes/dashboard.py ===
-    'dashboard_title': 'My mailboxes',
+    'dashboard_title': 'Dashboard',
     'mailbox_col': 'Mailbox',
     'actions_col': 'Actions',
     'aliases_col': 'Alias',
-    'rekey_status': '⚠ RE-ENCRYPTION RUNNING… ⚠',
+    'rekey_status': '⚠ RE-ENCRYPTION RUNNING... ⚠',
     'rekey_note': 'Your mailbox is being re-encrypted. It is disabled for 15 minutes while being re-encrypted with your new password.',
-    'deletion_status': '⚠ SCHEDULED DELETION… ⚠',
+    'deletion_status': '⚠ SCHEDULED DELETION... ⚠',
     'deletion_note': 'This mailbox will be definitively deleted in 48h.',
     'change_password_btn': 'Change Password',
     'add_alias_link': 'Add an alias',
@@ -141,11 +144,11 @@ translations = {
     'btn_manage': 'Manage',
     'pending': 'Pending...',
     'domain_col': 'Domain',
-    'domains_list_title': 'Your Domains',
+    'domains_list_title': 'Domains',
     'domain_mailboxes_title': 'Domain Mailboxes',
     'mailbox_actions_title': 'Mailbox Actions',
     'mailboxes_count_col': 'Mailboxes',
-    'mailbox_count_display': 'Your mailboxes: {count}/{max}',
+    'mailbox_count_display': 'Mailboxes: {count}/{max}',
     'email_col': 'Email',
     'aliases_count_col': 'Aliases',
     'status_col': 'Status',
@@ -223,6 +226,14 @@ translations = {
     'invalid_domain': 'Invalid domain selected.',
     'email_already_exists': 'Email address is invalid, forbidden or already exists',
     'mailbox_creation_failed': 'Failed to create mailbox.',
+    'mailbox_creation_mailbox': 'Mailbox',
+    'mailbox_creation_password': 'Password',
+    'mailbox_creation_quota': 'Quota',
+    'mailbox_creation_passwords_match_hint': 'Repeat password to confirm. Passwords must match',
+    'mailbox_creation_mailbox_hint': 'Lowercase letters (a-z), digits 0-9, dash (-), underscore (_). Minimum 6 chars. No dots (.)',
+    'mailbox_creation_domain_hint': 'Choose a domain for you new mailbox',
+    'mailbox_creation_password_hint': 'Minimum 12 chars. No percent character (%)',
+    'mailbox_creation_quota_hint': 'The maximum quota in GB, up to 5 (GB)',
 
     # Buttons / common
     'btn_yes': 'Yes',
