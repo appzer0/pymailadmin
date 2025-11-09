@@ -2,7 +2,7 @@
 
 from middleware.session import SessionMiddleware
 from routes.login import login_handler
-from routes.dashboard import home_handler, domain_handler
+from routes.dashboard import home_handler, domain_handler, mailbox_handler
 from routes.mailbox_creation import create_mailbox_handler
 from routes.user_management import (
     edit_alias_handler,

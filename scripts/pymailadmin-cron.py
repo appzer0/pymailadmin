@@ -40,11 +40,11 @@ logging.basicConfig(
 
 # DATABASE
 DB_CONFIG = {
-    'host': '{DB_HOST}',  # MySQL IP
-    'user': '{DB_USER}',  # MySQL db user
-    'password': '{DB_PASSWORD}',  # MySQL db password
-    'database': '{DB_NAME}',  # MySQL db name
-    'charset': 'utf8mb4'  # charset
+    'host': DB_HOST,          # MySQL IP
+    'user': DB_USER,          # MySQL db user
+    'password': DB_PASSWORD,  # MySQL db password
+    'database': DB_NAME,      # MySQL db name
+    'charset': 'utf8mb4'      # charset
 }
 
 # SQL REQUESTS
@@ -166,6 +166,7 @@ def run_cron():
 
             for record in pending_creations:
                 email = record['email']
+                logging.info(f"Processing email: {email}, type: {type(email)}")
                 if create_mailbox_with_doveadm(email):
                     # Cleanup creation pending
                     cursor.execute(SQL_DELETE_CREATION_PENDING, (email,))

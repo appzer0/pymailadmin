@@ -71,7 +71,7 @@ def home_handler(environ, start_response):
         can_create, current_count, max_count = can_create_mailbox(admin_user_id)
         counter_color = "red" if not can_create else "green"
         counter_html = f"""
-        <div style="{counter_color};>
+        <div style="{counter_color};">
             <strong>{translations['mailbox_count_display'].format(count=current_count, max=max_count)}</strong>
         </div>
         """
@@ -352,7 +352,7 @@ def mailbox_handler(environ, start_response):
             add_alias_btn = f'<a href="/addalias?destination={email}"><button>{translations["btn_add_alias"]}</button></a>'
         
         else:
-            add_alias_btn = f'<button disabled style="opacity: 0.5; cursor: not-allowed;">{translations["btn_add_alias"]} ({translations["limit_reached"]})</button>'
+            add_alias_btn = f'<button disabled="disabled">{translations["btn_add_alias"]} ({translations["limit_reached"]})</button>'
     
     else:
         add_alias_btn = ""
@@ -375,10 +375,10 @@ def mailbox_handler(environ, start_response):
     
     <p><a href="/domain?id={domain_id}">{translations['back_to_domain']}</a></p>
     
-    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+    <div>
         <p><strong>{translations['email_label']}:</strong> {email}</p>
         <p><strong>{translations['domain_label']}:</strong> {domain_name}</p>
-        <p><strong>{translations['aliases_count_label']}:</strong> {alias_count} / {max_aliases}</p>
+        <p><strong>{translations['alias_count_display']}</strong> ( {alias_count} / {max_aliases} )</p>
     </div>
     
     {actions_section}
@@ -386,7 +386,7 @@ def mailbox_handler(environ, start_response):
     <h3>{translations['aliases_title']}</h3>
     {add_alias_btn}
     
-    <table border="1" style="margin-top: 15px;">
+    <table>
         <thead>
             <tr>
                 <th>{translations['alias_source_col']}</th>

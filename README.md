@@ -132,25 +132,45 @@ Allow your web server user (www-data, httpd, etc.) to reach static dir:
 Make sure you have a TLS certificate (with ``certbot`` or another tool).
 
 #### Install the Dovecot connector ON YOUR DOVECOT HOST
-Copy the connector on your Dovecot host:
+Run the commands in the chapter below **on your Dovecot host**:
+
+Copy the connector:
 
 ``cp scripts/pymailadmin-cron.py /opt/pymailadmin/pymailadmin-cron.py``
 
 Edit it. Put your database connection settings again at the top.
 Customize the table name and columns names to match yours (4 variables).
 
-You'll need those packages on your Dovecot host:
+You'll need those packages:
 
-``apt install python3 python3-mysqldb ``
+``apt install python3 python3-pip python3-venv python3-dev``
+
+Create the virtual environment:
+
+``python3 -m venv /opt/pymailadmin/venv``
+
+Enter the venv by activating it:
+
+``source /opt/pymailadmin/venv/bin/activate``
+
+Install the MySQL connector:
+
+``python3 -m pip install mysql-connector-python``
+
+Create the log file:
+
+``touch /var/log/pymailadmin-cron.log``
 
 Create a cron task, e.g.:
 
-``*/2 * * * * root /usr/bin/python3 /opt/pymailadmin/scripts/pymailadmin-cron.py``
+``*/2 * * * * root /opt/pymailadmin/venv/bin/python /opt/pymailadmin/pymailadmin-cron.py``
+
+That's all for your Dovecot host.
 
 ### Start the service
 ``systemctl enable --now pymailadmin.service``
 
-#### Create s superadmin
+#### Create a superadmin
   * Create a salted hash of your password, here's an example for an Argon2ID hash:
     * ``echo -n 'My@Pass*word!' | argon2 "$(pwgen -Ans 16 1)" -id -t 3 -p 2 -m 16 -e``
   * Create a superadmin in your database:
@@ -283,20 +303,40 @@ Autorisez votre serveur HTTP (www-data, httpd, etc.) à atteindre le répertoire
 Assurez-vous d'avoir un certificat TLS (via ``certbot`` ou autre).
 
 #### Installez le connecteur Dovecot SUR VOTRE SERVEUR DOVECOT
-Copiez le connecteur sur votre serveur Dovecot :
+Exécutez les commandes de ce chapitre **sur votre serveur Dovecot** :
+
+Copiez le connecteur :
 
 ``cp scripts/pymailadmin-cron.py /opt/pymailadmin/pymailadmin-cron.py``
 
-Editez-le. Mettez à nouveau vos paramètres de connexion à la base de données.
-Modifiez le nom de la table et des colonnes avec les vôtres (4 variables).
+Éditez-le. Mettez en haut vos paramètres de connexion à la base de données.
+Adaptez le nom de la table ainsi que les noms des colonnes (4 variables).
 
-Vous aurez besoin des ces paquets sur votre serveur Dovecot:
+Vous aurez besoin de ces paquets :
 
-``apt install python3 python3-mysqldb ``
+``apt install python3 python3-pip python3-venv python3-dev``
 
-Créez une tâche planifiée cron, par ex. :
+Créez l'environnement virtuel :
 
-``*/2 * * * * root /usr/bin/python3 /opt/pymailadmin/scripts/pymailadmin-cron.py``
+``python3 -m venv /opt/pymailadmin/venv``
+
+Entrez dans le venv en l'activant :
+
+``source /opt/pymailadmin/venv/bin/activate``
+
+Installez le connecteur MySQL :
+
+``python3 -m pip install mysql-connector-python``
+
+Créez le fichier pour les logs :
+
+``touch /var/log/pymailadmin-cron.log``
+
+Créez une tâche planifiée pour cron, par ex. :
+
+``*/2 * * * * root /opt/pymailadmin/venv/bin/python /opt/pymailadmin/pymailadmin-cron.py``
+
+C'est tout pour votre serveur Dovecot.
 
 ### Démarrez le service
 ``systemctl enable --now pymailadmin.service``

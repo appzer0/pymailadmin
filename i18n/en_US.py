@@ -132,6 +132,7 @@ translations = {
     'mailbox_col': 'Mailbox',
     'actions_col': 'Actions',
     'aliases_col': 'Alias',
+    'active_status': 'Active',
     'rekey_status': '⚠ RE-ENCRYPTION RUNNING... ⚠',
     'rekey_note': 'Your mailbox is being re-encrypted. It is disabled for 15 minutes while being re-encrypted with your new password.',
     'deletion_status': '⚠ SCHEDULED DELETION... ⚠',
@@ -154,6 +155,8 @@ translations = {
     'status_col': 'Status',
     'actions_col': 'Actions',
     'no_mailboxes': 'No Mailboxes.',
+    'mailbox_details_title': 'Mailbox Details',
+    'back_to_domain': 'Back to Domain',
     
     # Mailbox limits
     'mailbox_limit_reached': 'Maximum number of mailboxes reached',
@@ -162,12 +165,15 @@ translations = {
     'create_mailbox_btn_disabled': 'Mailboxes limit reached',
     'error_mailbox_limit_exceeded': 'You cannot create more mailboxes.',
     
-    # Alias limits
+    # Aliases
     'alias_limit_reached': 'Maximum number of aliases reached ({count}/{count})',
-    'alias_count_display': 'Aliases: {count}/{max}',
+    'alias_count_display': 'Aliases',
     'error_alias_limit_exceeded': 'You cannot create more than {count} aliases for this mailbox.',
     'limit_reached': 'limit reached',
-    
+    'aliases_title': 'Aliases',
+    'alias_source_col': 'Alias Name',
+    'alias_destination_col': 'Destination Mailbox',
+        
     # Configuration wizard
     'config_wizard_title': 'Initial Configuration',
     'config_step_1_title': 'Step 1: Language',
