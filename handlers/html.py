@@ -9,7 +9,7 @@ def navigation_menu(admin_user_email, admin_role):
         
         admin_menu=""
         
-        if admin_role == 'super_admin'
+        if admin_role == 'super_admin':
             admin_menu=f"""
                 <li><a href="/moderate/pending">{translations["menu_moderation_link"]}</a></li>
             """
