@@ -13,6 +13,7 @@ from i18n.en_US import translations
 # --- Aliases management ---
 def edit_alias_handler(environ, start_response):
     session = environ.get('session', None)
+    
     if session is None or not session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/login")])
         return [b""]
@@ -27,26 +28,72 @@ def edit_alias_handler(environ, start_response):
             return [translations['alias_id_invalid'].encode('utf-8')]
 
         alias = fetch_all(config['sql_dovecot']['select_alias_by_id'], (int(alias_id),))
+        
         if not alias:
             start_response("404 Not Found", [("Content-Type", "text/html")])
             return [translations['alias_not_found'].encode('utf-8')]
         
         admin_user_email = session.data.get('email', '')
         admin_role = session.data.get('role', 'user')
+        source_local = alias[0]['source'].split('@')[0]
+        destination = alias[0]['destination']
         
         # Generate form
-        form = f"""
-        <form method="POST">
-            <input type="hidden" name="alias_id" value="{alias_id}">
-            <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
-            <label for="source">{translations['source_label']}</label><br>
-            <input type="text" id="source" name="source" value="{alias[0]['source']}" required><br><br>
-            <label for="destination">{translations['destination_label']}</label><br>
-            <input type="email" id="destination" name="destination" value="{alias[0]['destination']}" required><br><br>
-            <button type="submit">{translations['btn_modify']}</button>
-            <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
-        </form>
+        form_html = f"""
+            <form method="POST" id="aliasEditForm">
+                <input type="hidden" name="alias_id" value="{alias_id}">
+                <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
+
+                <label for="source">{translations['source_label']}</label><br>
+                <input type="text" id="source" name="source" value="{source_local}" minlength="8" pattern="^[a-z0-9_-]+$" required><br>
+                <small>Lowercase letters, digits, underscore, dash; no dot or @; minimum 8 characters.</small><br><br>
+
+                <label for="destination">{translations['destination_label']}</label><br>
+                <input type="text" id="destination" name="destination" value="{destination}" readonly><br><br>
+
+                <div id="preview" style="font-weight:bold; font-size:1.3em; margin-bottom:15px; color:red;">
+                    {alias[0]['source']} → {destination}
+                </div>
+
+                <button type="submit">{translations['btn_modify']}</button>
+                <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
+            </form>
         """
+
+        script_js = """
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const sourceInput = document.getElementById('source');
+                const destinationInput = document.getElementById('destination');
+                const preview = document.getElementById('preview');
+
+                function validateAlias(source) {
+                    return /^[a-z0-9_-]{8,}$/.test(source);
+                }
+
+                function updatePreview() {
+                    const sourceVal = sourceInput.value.trim();
+                    const destVal = destinationInput.value.trim();
+                    const domainPart = destVal.split('@')[1] || '';
+                    const isValid = validateAlias(sourceVal);
+
+                    if (isValid) {
+                        preview.style.color = 'green';
+                        preview.textContent = sourceVal + '@' + domainPart + " → " + destVal;
+                    } else {
+                        preview.style.color = 'red';
+                        preview.textContent = '?@' + domainPart + " → " + destVal;
+                    }
+                }
+
+                sourceInput.addEventListener('input', updatePreview);
+                updatePreview();
+            });
+            </script>
+        """
+
+        form = form_html + script_js
+        
         body = html_template(translations['edit_alias_title'], form,admin_user_email=admin_user_email,admin_role=admin_role)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
@@ -55,16 +102,16 @@ def edit_alias_handler(environ, start_response):
     elif environ['REQUEST_METHOD'] == 'POST':
         # Read POST data
         content_length = int(environ.get('CONTENT_LENGTH', 0))
+        
         if content_length == 0:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['bad_request'].encode('utf-8')]
         
         post_data = environ['wsgi.input'].read(content_length).decode('utf-8')
-        
         data = parse_qs(post_data)
         alias_id = data.get('alias_id', [''])[0]
-        new_source = data.get('source', [''])[0].strip()
-        new_destination = data.get('destination', [''])[0].strip()
+        source_raw = data.get('source', [''])[0].strip()
+        destination = data.get('destination', [''])[0].strip()
         csrf_token = data.get('csrf_token', [''])[0]
         
         if not session.validate_csrf_token(csrf_token):
@@ -75,18 +122,20 @@ def edit_alias_handler(environ, start_response):
         if not alias_id.isdigit():
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['alias_id_invalid'].encode('utf-8')]
-        if not new_source or not new_destination:
-            start_response("400 Bad Request", [("Content-Type", "text/html")])
-            return [translations['source_required'].encode('utf-8')]
-        if '@' not in new_destination:
+        
+        if '@' not in destination:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['destination_invalid'].encode('utf-8')]
 
+        domain_part = destination.split('@', 1)[1]
+        source = f"{source_raw}@{domain_part}"
+
         # Update aliases in database
         try:
-            execute_query(config['sql_dovecot']['update_alias'], (new_source, new_destination, int(alias_id)))
+            execute_query(config['sql_dovecot']['update_alias'], (source, destination, int(alias_id)))
             start_response("302 Found", [("Location", "/home")])
             return [b""]
+        
         except Exception as e:
             start_response("500 Internal Server Error", [("Content-Type", "text/html")])
             logging.error(f"Error when updating alias: {e}")
@@ -123,19 +172,62 @@ def add_alias_handler(environ, start_response):
         admin_role = session.data.get('role', 'user')
         
         # Generate form
-        form = f"""
-        {warning}
-        <form method="POST">
-            <label for="source">{translations['source_label']}</label><br>
-            <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
-            <input type="text" id="source" name="source" required><br><br>
-            <label for="destination">{translations['destination_label']}</label><br>
-            <input type="email" id="destination" name="destination" value="{destination}" readonly required><br><br>
-            <button type="submit">{translations['btn_add']}</button>
-            <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
-        </form>
+        form_html = f"""
+            {warning}
+            <form method="POST" id="aliasAddForm">
+                <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
+
+                <label for="source">{translations['source_label']}</label><br>
+                <input type="text" id="source" name="source" minlength="8" pattern="^[a-z0-9_-]+$" required {form_disabled} placeholder="alias"><br>
+                <small>Lowercase letters, digits, underscore, dash; no dot or @; minimum 8 characters.</small><br><br>
+
+                <label for="destination">{translations['destination_label']}</label><br>
+                <input type="hidden" id="destination" name="destination" value="{destination}">
+                <strong>{destination}</strong><br><br>
+
+                <div id="preview" style="font-weight:bold; font-size:1.3em; margin-bottom:15px; color:red;">
+                    ?@domain.tld → mailbox@domain.tld
+                </div>
+
+                <button type="submit" {form_disabled}>{translations['btn_add']}</button>
+                <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
+            </form>
         """
-        body = html_template(translations['add_alias_title'], form,admin_user_email=admin_user_email,admin_role=admin_role)
+
+        script_js = """
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const sourceInput = document.getElementById('source');
+                const destInput = document.getElementById('destination');
+                const previewDiv = document.getElementById('preview');
+
+                function validateAlias(alias) {
+                    return /^[a-z0-9_-]{8,}$/.test(alias);
+                }
+
+                function updatePreview() {
+                    const sourceVal = sourceInput.value.trim();
+                    const destVal = destInput.value.trim();
+                    let valid = validateAlias(sourceVal) && destVal.includes('@');
+
+                    let domainPart = destVal.split('@')[1] || '';
+                    let previewText = sourceVal && domainPart
+                        ? sourceVal + '@' + domainPart + ' → ' + destVal
+                        : '?@domain.tld → mailbox@domain.tld';
+
+                    previewDiv.textContent = previewText;
+                    previewDiv.style.color = valid ? 'green' : 'red';
+                }
+
+                sourceInput.addEventListener('input', updatePreview);
+                updatePreview();  // initial preview
+            });
+            </script>
+        """
+
+        form = form_html + script_js
+        
+        body = html_template(translations['add_alias_title'], form, admin_user_email=admin_user_email, admin_role=admin_role)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
 
@@ -144,7 +236,7 @@ def add_alias_handler(environ, start_response):
         content_length = int(environ.get('CONTENT_LENGTH', 0))
         post_data = environ['wsgi.input'].read(content_length).decode('utf-8')
         data = parse_qs(post_data)
-        source = data.get('source', [''])[0].strip()
+        source_raw = data.get('source', [''])[0].strip()
         destination = data.get('destination', [''])[0].strip()
         csrf_token = data.get('csrf_token', [''])[0]
 
@@ -160,6 +252,10 @@ def add_alias_handler(environ, start_response):
         if '@' not in destination:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['destination_invalid'].encode('utf-8')]
+        
+        # Concat source with domain part of destination to form full alias source@domain
+        domain_part = destination.split('@', 1)[1]
+        source = f"{source_raw}@{domain_part}"
         
         # Re-check aliases limit
         can_create, current_count, max_count = can_create_alias(destination)

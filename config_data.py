@@ -15,10 +15,11 @@ config = {
             INSERT INTO pymailadmin_rate_limits (`key`, `attempts`, `last_attempt`, `blocked_until`)
             VALUES (%s, 1, NOW(), NULL)
             ON DUPLICATE KEY UPDATE
-                `attempts` = `attempts` + 1,
+                `attempts` = CASE WHEN `attempts` IS NULL THEN 1 ELSE `attempts` + 1 END,
                 `last_attempt` = NOW(),
-                `blocked_until` = IF(`attempts` >= %s - 1, DATE_ADD(NOW(), INTERVAL %s MINUTE), `blocked_until`)
+                `blocked_until` = IF(`attempts` + 1 >= %s, DATE_ADD(NOW(), INTERVAL %s MINUTE), NULL)
         """,
+        
         'reset_rate_limit': "UPDATE pymailadmin_rate_limits SET `attempts` = 0, `blocked_until` = NULL WHERE `key` = %s",
         'delete_expired_rate_limits': "DELETE FROM pymailadmin_rate_limits WHERE `blocked_until` IS NOT NULL AND `blocked_until` < NOW()",
         

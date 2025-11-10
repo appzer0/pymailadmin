@@ -8,6 +8,16 @@ from libs import translations, parse_qs, config
 from utils.check_super_admin_exists import check_super_admin_exists
 import logging
 
+def reset_rate_limit(key):
+    
+    try:
+        sql = config['sql']['reset_rate_limit']
+        execute_query(sql, (key,))
+        logging.info(f"Rate limit reset for key: {key}")
+
+    except Exception as e:
+        logging.error(f"Error resetting rate limit for {key}: {e}")
+
 def login_page(session, error_msg=None):
     """Display standard login page"""
     token = session.get_csrf_token()
@@ -71,6 +81,7 @@ def login_handler(environ, start_response):
                 rl_config['window_minutes'],
                 rl_config['block_minutes']
             )
+            
             if not success:
                 start_response("429 Too Many Requests", [
                     ("Content-Type", "text/html"),
@@ -90,7 +101,13 @@ def login_handler(environ, start_response):
 
         # Authenticate user
         user = fetch_all(config['sql']['select_admin_user_by_email'], (email,))
+        
         if user and argon2.verify(password, user[0]['password_hash']):
+            
+            # Reset rate limit after successful login
+            ip = get_client_ip(environ)
+            reset_rate_limit(f"ip:{ip}")
+            
             session.data['logged_in'] = True
             session.data['email'] = email
             session.data['role'] = user[0]['role']
@@ -98,6 +115,7 @@ def login_handler(environ, start_response):
             
             start_response("302 Found", [("Location", "/home")])
             return [b""]
+        
         else:
             start_response("401 Unauthorized", [("Content-Type", "text/html")])
             return [login_page(session, translations['invalid_credentials']).encode()]

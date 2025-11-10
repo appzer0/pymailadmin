@@ -111,6 +111,12 @@ dynamic_config = {
     'SECRET_KEY': os.getenv('SECRET_KEY'),
     'PRETTY_NAME': os.getenv('PRETTY_NAME', 'pymailadmin'),
     'PYMAILADMIN_URL': os.getenv('PYMAILADMIN_URL', 'https://mailadmin.liberta.email'),
+    'LOGIN_MAX_ATTEMPTS': os.getenv('LOGIN_MAX_ATTEMPTS', 5),
+    'LOGIN_WINDOW_MINUTES': os.getenv('LOGIN_WINDOW_MINUTES', 15),
+    'LOGIN_BLOCK_MINUTES': os.getenv('LOGIN_BLOCK_MINUTES', 30),
+    'REGISTER_MAX_ATTEMPTS_PER_IP': os.getenv('REGISTER_MAX_ATTEMPTS_PER_IP', 3),
+    'REGISTER_WINDOW_MINUTES': os.getenv('REGISTER_WINDOW_MINUTES', 60),
+    'REGISTER_BLOCK_MINUTES': os.getenv('REGISTER_BLOCK_MINUTES', 60),
     
     'limits': {
         'max_mailboxes_per_user': int(os.getenv('MAX_MAILBOXES_PER_USER', 3)),
