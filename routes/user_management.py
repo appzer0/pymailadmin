@@ -51,11 +51,11 @@ def edit_alias_handler(environ, start_response):
                 <label for="destination">{translations['destination_label']}</label><br>
                 <input type="text" id="destination" name="destination" value="{destination}" readonly><br><br>
 
-                <div id="preview" style="font-weight:bold; font-size:1.3em; margin-bottom:15px; color:red;">
+                <div id="preview" style="font-weight:bold; font-size:1.3em; margin-bottom:15px; color:red; text-align:center;">
                     {alias[0]['source']} → {destination}
                 </div>
 
-                <button type="submit">{translations['btn_modify']}</button>
+                <button type="submit" disabled>{translations['btn_modify']}</button>
                 <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
             </form>
         """
@@ -66,6 +66,7 @@ def edit_alias_handler(environ, start_response):
                 const sourceInput = document.getElementById('source');
                 const destinationInput = document.getElementById('destination');
                 const preview = document.getElementById('preview');
+                const submitBtn = document.querySelector('#aliasEditForm button[type="submit"]');
 
                 function validateAlias(source) {
                     return /^[a-z0-9_-]{8,}$/.test(source);
@@ -80,9 +81,11 @@ def edit_alias_handler(environ, start_response):
                     if (isValid) {
                         preview.style.color = 'green';
                         preview.textContent = sourceVal + '@' + domainPart + " → " + destVal;
+                        submitBtn.disabled = false;
                     } else {
                         preview.style.color = 'red';
                         preview.textContent = '?@' + domainPart + " → " + destVal;
+                        submitBtn.disabled = true;
                     }
                 }
 
@@ -185,11 +188,11 @@ def add_alias_handler(environ, start_response):
                 <input type="hidden" id="destination" name="destination" value="{destination}">
                 <strong>{destination}</strong><br><br>
 
-                <div id="preview" style="font-weight:bold; font-size:1.3em; margin-bottom:15px; color:red;">
+                <div id="preview" style="font-weight:bold; font-size:1.3em; margin-bottom:15px; color:red; text-align:center;">
                     ?@domain.tld → mailbox@domain.tld
                 </div>
 
-                <button type="submit" {form_disabled}>{translations['btn_add']}</button>
+                <button type="submit" disabled {form_disabled}>{translations['btn_add']}</button>
                 <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
             </form>
         """
@@ -200,6 +203,7 @@ def add_alias_handler(environ, start_response):
                 const sourceInput = document.getElementById('source');
                 const destInput = document.getElementById('destination');
                 const previewDiv = document.getElementById('preview');
+                const submitBtn = document.querySelector('#aliasAddForm button[type="submit"]');
 
                 function validateAlias(alias) {
                     return /^[a-z0-9_-]{8,}$/.test(alias);
@@ -208,15 +212,16 @@ def add_alias_handler(environ, start_response):
                 function updatePreview() {
                     const sourceVal = sourceInput.value.trim();
                     const destVal = destInput.value.trim();
-                    let valid = validateAlias(sourceVal) && destVal.includes('@');
+                    const domainPart = destVal.split('@')[1] || '';
+                    const valid = validateAlias(sourceVal) && destVal.includes('@');
 
-                    let domainPart = destVal.split('@')[1] || '';
-                    let previewText = sourceVal && domainPart
+                    const previewText = valid
                         ? sourceVal + '@' + domainPart + ' → ' + destVal
                         : '?@domain.tld → mailbox@domain.tld';
 
                     previewDiv.textContent = previewText;
                     previewDiv.style.color = valid ? 'green' : 'red';
+                    submitBtn.disabled = !valid;
                 }
 
                 sourceInput.addEventListener('input', updatePreview);

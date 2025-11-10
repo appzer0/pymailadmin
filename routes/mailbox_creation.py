@@ -39,6 +39,7 @@ def create_mailbox_handler(environ, start_response):
             warning = f'<p>{translations["mailbox_count_display"].format(count=current_count)}</p>'
             form_disabled = ''
         
+        # Generate form
         form_html = f"""
             {warning}
             <form method="POST" id="mailboxForm">
@@ -78,11 +79,11 @@ def create_mailbox_handler(environ, start_response):
                     <small>{translations['mailbox_creation_quota_hint']}</small><br><br>
                 </fieldset>
                 
-                <div id="preview" style="align:center font-weight:bold; font-size:1.3em; margin-bottom:15px; color:red;">
+                <div id="preview" style="font-weight:bold; font-size:1.3em; margin-bottom:15px; color:red; text-align:center;">
                     ?@domain.tld (X GB)
                 </div>
                 
-                <button type="submit" {form_disabled}>{translations['btn_create']}</button>
+                <button type="submit" disabled {form_disabled}>{translations['btn_create']}</button>
                 <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
             </form>
         """
@@ -96,13 +97,14 @@ def create_mailbox_handler(environ, start_response):
                 const preview = document.getElementById('preview');
                 const password = document.getElementById('password');
                 const passwordConfirm = document.getElementById('password_confirm');
+                const submitBtn = document.querySelector('#mailboxForm button[type="submit"]');
 
                 function validateLocalPart(str) {
                     return /^[a-z0-9_-]{6,}$/.test(str);
                 }
 
                 function validatePassword(pwd) {
-                    return pwd.length >=12 && !pwd.includes('%');
+                    return pwd.length >= 12 && !pwd.includes('%');
                 }
 
                 function updatePreview() {
@@ -110,7 +112,6 @@ def create_mailbox_handler(environ, start_response):
                     const quota = quotaInput.value || 'X';
                     let valid = true;
 
-                    // Validate all fields
                     if (!validateLocalPart(localPart.value)) valid = false;
                     if (!validatePassword(password.value)) valid = false;
                     if (password.value !== passwordConfirm.value) valid = false;
@@ -119,6 +120,7 @@ def create_mailbox_handler(environ, start_response):
 
                     preview.textContent = email + " (" + quota + " GB)";
                     preview.style.color = valid ? 'green' : 'red';
+                    submitBtn.disabled = !valid;
                 }
 
                 localPart.addEventListener('input', updatePreview);
@@ -127,7 +129,7 @@ def create_mailbox_handler(environ, start_response):
                 password.addEventListener('input', updatePreview);
                 passwordConfirm.addEventListener('input', updatePreview);
 
-                updatePreview(); // initial preview update
+                updatePreview(); // initial update
             });
             </script>
         """
