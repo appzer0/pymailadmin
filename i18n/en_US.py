@@ -48,6 +48,7 @@ translations = {
     'menu_dashboard_link': 'Dashboard',
     'menu_domains_link': 'Domains',
     'menu_mailboxes_link': 'Mailboxes',
+    'menu_moderation_link': 'Moderation',
     'menu_logout_link': 'Logout',
 
     # === routes/register.py ===
@@ -71,6 +72,7 @@ translations = {
     'moderation_role_col': 'Role',
     'moderation_reason_col': 'Reason',
     'moderation_actions_col': 'Actions',
+    'allowed_domains': 'Allowed domains',
     'approve_btn': 'Accept',
     'deny_btn': 'Decline',
     'pending_confirmation': 'Your registration has been confirmed! It is now pending for review and validation by an admin.',

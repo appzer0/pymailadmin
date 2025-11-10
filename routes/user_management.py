@@ -245,7 +245,7 @@ def add_alias_handler(environ, start_response):
             return [translations['csrf_invalid'].encode('utf-8')]
 
         # Validation
-        if not source or not destination:
+        if not source_raw or not destination:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['source_required'].encode('utf-8')]
         

@@ -47,12 +47,17 @@ And a bit of patience and easy-going on the Python code quality.
 
 #### Edit schema.sql to adapt foreign keys to your tables/fields names
 
-Change 2 foreign keys references in schema.sql. Replace "users(id)" with
-your own table and field names, those storing the actual users IDs:
+Change 3 foreign keys references in schema.sql.
+
+Replace "users(id)" with your own table and column names, those storing the actual users IDs:
 
 ``FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,``
 
 ``FOREIGN KEY (`user_id`) REFERENCES users(id) ON DELETE CASCADE``
+
+Replace "domain(id)" with your own table and column names, those storing the actual domains IDs:
+
+``FOREIGN KEY (`domain_id`) REFERENCES `domain`(`id`) ON DELETE CASCADE``
 
 #### Import tables schema into you mail database
 ``mysql -udbuser -p dbname < schema.sql``
@@ -228,13 +233,17 @@ Et un peu de patience et d'indulgence sur la qualité du code Python.
 
 #### Éditez schema.sql pour l'adapter à votre table et noms de champs
 
-Changez les 2 références des clefs étrangères dans schema.sql. Remplacez
-"users(id)" avec vos propres noms de table et de champ, ceux qui stockent
-les ID des utilisateurs :
+Changez les 3 références des clefs étrangères dans schema.sql.
+
+Remplacez "users(id)" avec vos propres noms de table et de colonne, ceux qui stockent les ID des utilisateurs :
 
 ``FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,``
 
 ``FOREIGN KEY (`user_id`) REFERENCES users(id) ON DELETE CASCADE``
+
+Remplacez "domain(id)" avec vos propres noms de table et de colonne, ceux qui stockent les ID des domaines :
+
+``FOREIGN KEY (`domain_id`) REFERENCES `domain`(`id`) ON DELETE CASCADE``
 
 #### Importez le schéma des tables dans votre base
 ``mysql -udbuser -p dbname < schema.sql``

@@ -76,6 +76,7 @@ def approve_registration_handler(environ, start_response):
     data = parse_qs(post_data)
     email = data.get('email', [''])[0].strip()
     csrf_token = data.get('csrf_token', [''])[0]
+    allowed_domains = data.get('allowed_domains', [])
 
     if not session.validate_csrf_token(csrf_token):
         start_response("403 Forbidden", [("Content-Type", "text/html")])
@@ -93,10 +94,29 @@ def approve_registration_handler(environ, start_response):
         # Insert new mailbox
         execute_query(config['sql']['insert_user_from_registration'], (email, reg['password_hash'], 'user'))
         
-        # Insert mailbox creation pending for the Dovecot connector crontask
+        # Insert mailbox creation pending for the Dovecot connector cron task
         token = secrets.token_urlsafe(32)
         execute_query(config['sql']['insert_creation_pending'], (email, token, token))
-    
+        
+        # Get user ID
+        user_row = fetch_all(config['sql']['select_admin_user_by_email'], (email,))
+        
+        if not user_row:
+            raise ValueError("User newly inserted not found")
+        
+        user_id = user_row[0]['id']
+        
+        # Insert allowed domains for new user
+        for domain_id_str in allowed_domains:
+            
+            try:
+                domain_id = int(domain_id_str)
+                execute_query(config['sql']['insert_allowed_domains_for_user'], (user_id, domain_id))
+            
+            # No domains? OK then
+            except ValueError:
+                pass
+        
         # Then cleanup pending registration
         execute_query(config['sql']['delete_registration_by_email'], (email,))
     
@@ -155,10 +175,22 @@ def moderation_queue_handler(environ, start_response):
     
     for p in pending:
         
+        # Build domains list as checkboxes
+        domains_checkboxes = ""
+        
+        for domain in domains:
+            domains_checkboxes += f"""
+                <label><input type="checkbox" name="allowed_domains" value="{domain["id"]}"> {domain["domain"]}</label><br>
+            """
+                
         approve = f"""
             <form method="POST" action="/moderate/approve">
                 <input type="hidden" name="email" value="{p['email']}">
                 <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
+                <fieldset>
+                    <legend>{translations["allowed_domains"]}</legend>
+                    {domains_checkboxes}
+                </fieldset>
                 <button type="submit">{translations["approve_btn"]}</button>
             </form>
         """

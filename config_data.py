@@ -52,6 +52,9 @@ config = {
         'delete_registration_by_email': "DELETE FROM pymailadmin_admin_registrations WHERE email = %s",
         'select_superadmins_for_moderation': "SELECT email FROM pymailadmin_admin_users WHERE role = 'super_admin' AND active = 1",
         
+        # Allowed domains for users
+        'insert_allowed_domains_for_user': "INSERT IGNORE INTO pymailadmin_domains_ownerships (admin_user_id, domain_id) VALUES (%s, %s)"
+                
         # Pending creations for mailboxes
         'insert_creation_pending': 'INSERT INTO pymailadmin_creation_pending (email, token) VALUES (%s, %s) ON DUPLICATE KEY UPDATE token = %s',
         'select_creation_pending': 'SELECT email FROM pymailadmin_creation_pending WHERE email = %s',

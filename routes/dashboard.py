@@ -18,28 +18,45 @@ def home_handler(environ, start_response):
     admin_role = session.data.get('role', 'user')
     admin_user_email = session.data.get('email', '')
         
-    # Get all domains
+    # Get domains
     try:
-        domains = fetch_all(config['sql_dovecot']['select_all_domains'], ())
+        if admin_role == 'super_admin':
+            # Get all domains for superadmin
+            domains = fetch_all(config['sql_dovecot']['select_all_domains'], ())
+            
+        else:
+            # Get allowed domains only for users/admins
+            allowed_domain_rows = fetch_all(config['sql']['select_domains_by_admin_user'], (admin_user_id,))
+            allowed_domain_ids = [row['domain_id'] for row in allowed_domain_rows] if allowed_domain_rows else []
+            
+            if not allowed_domain_ids:
+                domains = []
+            
+            else:
+                # Build final joined SQL statement
+                in_clause = ','.join(['%s'] * len(allowed_domain_ids))
+                sql = f"SELECT {config['db']['field_domain_id']} as id, {config['db']['field_domain_name']} as domain FROM {config['db']['table_domains']} WHERE {config['db']['field_domain_id']} IN ({in_clause}) ORDER BY {config['db']['field_domain_name']}"
+                domains = fetch_all(sql, allowed_domain_ids)
+    
     except Exception as e:
         logging.error(f"Error fetching domains: {e}")
         domains = []
     
     # Build domain list with mailbox counts
     domain_rows = ""
+    
     for domain in domains:
         domain_id = domain['id']
         domain_name = domain['domain']
         
         # Get mailboxes count for this domain
         try:
+            
             if admin_role == 'super_admin':
-                # Super admin sees all mailboxes
-                users_in_domain = fetch_all(
-                    config['sql_dovecot']['select_users_by_domain'], 
-                    (domain_id,)
-                )
+                # Superadmin sees all mailboxes
+                users_in_domain = fetch_all(config['sql_dovecot']['select_users_by_domain'], (domain_id,))
                 mailbox_count = len(users_in_domain)
+            
             else:
                 # Regular users see only their owned mailboxes
                 owned_ids_result = fetch_all(config['sql']['select_user_ids_by_owner'], (admin_user_id,))
@@ -52,6 +69,7 @@ def home_handler(environ, start_response):
                     )
                     owned_users = [u for u in users_in_domain if u['id'] in owned_ids]
                     mailbox_count = len(owned_users)
+                
                 else:
                     mailbox_count = 0
                     
@@ -71,7 +89,7 @@ def home_handler(environ, start_response):
         can_create, current_count, max_count = can_create_mailbox(admin_user_id)
         counter_color = "red" if not can_create else "green"
         counter_html = f"""
-        <div style="{counter_color};">
+        <div style="color:{counter_color};">
             <strong>{translations['mailbox_count_display'].format(count=current_count, max=max_count)}</strong>
         </div>
         """
@@ -149,6 +167,7 @@ def domain_handler(environ, start_response):
     
     # Get mailboxes in this domain
     try:
+        
         if admin_role == 'super_admin':
             # Super admin sees all mailboxes
             users_data = fetch_all(
@@ -279,6 +298,7 @@ def mailbox_handler(environ, start_response):
     
     # Check ownership (skip for super_admin)
     if admin_role != 'super_admin':
+        
         try:
             is_owner = fetch_all(config['sql']['is_owner'], (admin_user_id, int(user_id)))
             
@@ -317,6 +337,7 @@ def mailbox_handler(environ, start_response):
             config['sql_dovecot']['select_alias_by_mailbox'], 
             (domain_id, email)
         )
+    
     except Exception as e:
         logging.error(f"Error fetching aliases: {e}")
         aliases = []
