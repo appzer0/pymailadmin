@@ -33,10 +33,7 @@ def home_handler(environ, start_response):
                 domains = []
             
             else:
-                # Build final joined SQL statement
-                in_clause = ','.join(['%s'] * len(allowed_domain_ids))
-                sql = f"SELECT {config['db']['field_domain_id']} as id, {config['db']['field_domain_name']} as domain FROM {config['db']['table_domains']} WHERE {config['db']['field_domain_id']} IN ({in_clause}) ORDER BY {config['db']['field_domain_name']}"
-                domains = fetch_all(sql, allowed_domain_ids)
+                domains = fetch_all(config['sql_dovecot']['select_allowed_domains_by_admin'], (admin_user_id,))
     
     except Exception as e:
         logging.error(f"Error fetching domains: {e}")

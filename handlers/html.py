@@ -7,14 +7,15 @@ def navigation_menu(admin_user_email, admin_role):
     
     if admin_user_email:
         
-        admin_menu=""
-        
         if admin_role == 'super_admin':
             admin_menu=f"""
                 <li><a href="/moderate/pending">{translations["menu_moderation_link"]}</a></li>
             """
+        else:
+            admin_menu=""
         
         user_infos=f"""
+            {admin_menu}
             <li>{admin_user_email}({admin_role})</li>
             <li><a href="/logout">{translations["menu_logout_link"]}</a></li>
         """
@@ -26,7 +27,6 @@ def navigation_menu(admin_user_email, admin_role):
     <nav>
         <ul>
             <li><a href="/home">{translations["menu_dashboard_link"]}</a></li>
-            {admin_menu}
             {user_infos}
         </ul>
     </nav>

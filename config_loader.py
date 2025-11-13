@@ -57,6 +57,13 @@ def generate_sql_queries(schema):
         'select_domain_by_name': f"SELECT * FROM {schema['table_domains']} WHERE {schema['field_domain_name']} = %s",
         'select_domain_by_id': f"SELECT * FROM {schema['table_domains']} WHERE {schema['field_domain_id']} = %s",
         'select_all_domains': f"SELECT {schema['field_domain_id']}, {schema['field_domain_name']} FROM {schema['table_domains']}",
+        'select_allowed_domains_by_admin': f"""
+            SELECT d.{schema['field_domain_id']} AS id, d.{schema['field_domain_name']} AS domain
+            FROM {schema['table_domains']} d
+            JOIN pymailadmin_domains_ownerships o ON o.domain_id = d.{schema['field_domain_id']}
+            WHERE o.admin_user_id = %s
+            ORDER BY d.{schema['field_domain_name']}
+        """,
     }
     
     # Users queries

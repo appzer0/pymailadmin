@@ -54,6 +54,14 @@ config = {
         
         # Allowed domains for users
         'insert_allowed_domains_for_user': "INSERT IGNORE INTO pymailadmin_domains_ownerships (admin_user_id, domain_id) VALUES (%s, %s)",
+        'select_domains_by_admin_user': "SELECT domain_id FROM pymailadmin_domains_ownerships WHERE admin_user_id = %s",
+        'select_allowed_domains_by_admin': """
+            SELECT d.{field_domain_id} AS id, d.{field_domain_name} AS domain
+            FROM {table_domains} d
+            JOIN pymailadmin_domains_ownerships o ON o.domain_id = d.{field_domain_id}
+            WHERE o.admin_user_id = %s
+            ORDER BY d.{field_domain_name}
+        """,
                 
         # Pending creations for mailboxes
         'insert_creation_pending': 'INSERT INTO pymailadmin_creation_pending (email, token) VALUES (%s, %s) ON DUPLICATE KEY UPDATE token = %s',

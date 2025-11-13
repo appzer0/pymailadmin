@@ -159,6 +159,7 @@ translations = {
     'no_mailboxes': 'No Mailboxes.',
     'mailbox_details_title': 'Mailbox Details',
     'back_to_domain': 'Back to Domain',
+    'no_domains': 'No Domains',
     
     # Mailbox limits
     'mailbox_limit_reached': 'Maximum number of mailboxes reached',
