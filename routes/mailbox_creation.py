@@ -58,22 +58,22 @@ def create_mailbox_handler(environ, start_response):
                     </select><br>
                     <small>{translations['mailbox_creation_domain_hint']}</small><br><br>
                 </fieldset>
-
+                
                 <fieldset>
                     <legend>{translations['mailbox_creation_password']}</legend>
-
+                    
                     <label for="password">{translations['password_label']}</label><br>
                     <input type="password" id="password" name="password" minlength="12" pattern="[^%]+" required {form_disabled}><br>
                     <small>{translations['mailbox_creation_password_hint']}</small><br><br>
-
+                    
                     <label for="password_confirm">{translations['confirm_password_label']}</label><br>
                     <input type="password" id="password_confirm" name="password_confirm" minlength="12" pattern="[^%]+" required {form_disabled}><br>
                     <small>{translations['mailbox_creation_passwords_match_hint']}</small><br><br>
                 </fieldset>
-
+                
                 <fieldset>
                     <legend>{translations['mailbox_creation_quota']}</legend>
-
+                    
                     <label for="quota">{translations['quota_label']}</label><br>
                     <input type="number" id="quota" name="quota" min="1" max="5" value="1" required {form_disabled}><br>
                     <small>{translations['mailbox_creation_quota_hint']}</small><br><br>
@@ -98,37 +98,37 @@ def create_mailbox_handler(environ, start_response):
                 const password = document.getElementById('password');
                 const passwordConfirm = document.getElementById('password_confirm');
                 const submitBtn = document.querySelector('#mailboxForm button[type="submit"]');
-
+                
                 function validateLocalPart(str) {
                     return /^[a-z0-9_-]{6,}$/.test(str);
                 }
-
+                
                 function validatePassword(pwd) {
                     return pwd.length >= 12 && !pwd.includes('%');
                 }
-
+                
                 function updatePreview() {
                     const email = localPart.value + '@' + (domainSelect.options[domainSelect.selectedIndex]?.text || '');
                     const quota = quotaInput.value || 'X';
                     let valid = true;
-
+                    
                     if (!validateLocalPart(localPart.value)) valid = false;
                     if (!validatePassword(password.value)) valid = false;
                     if (password.value !== passwordConfirm.value) valid = false;
                     if (!(quota >= 1 && quota <= 5)) valid = false;
                     if (!domainSelect.value) valid = false;
-
+                    
                     preview.textContent = email + " (" + quota + " GB)";
                     preview.style.color = valid ? 'green' : 'red';
                     submitBtn.disabled = !valid;
                 }
-
+                
                 localPart.addEventListener('input', updatePreview);
                 domainSelect.addEventListener('change', updatePreview);
                 quotaInput.addEventListener('input', updatePreview);
-                password.addEventListener('input', updatePreview);
+                password.addEventereventListener('input', updatePreview);
                 passwordConfirm.addEventListener('input', updatePreview);
-
+                
                 updatePreview(); // initial update
             });
             </script>

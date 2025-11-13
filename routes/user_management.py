@@ -26,7 +26,7 @@ def edit_alias_handler(environ, start_response):
         if not alias_id.isdigit():
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['alias_id_invalid'].encode('utf-8')]
-
+        
         alias = fetch_all(config['sql_dovecot']['select_alias_by_id'], (int(alias_id),))
         
         if not alias:
@@ -43,23 +43,23 @@ def edit_alias_handler(environ, start_response):
             <form method="POST" id="aliasEditForm">
                 <input type="hidden" name="alias_id" value="{alias_id}">
                 <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
-
+                
                 <label for="source">{translations['source_label']}</label><br>
                 <input type="text" id="source" name="source" value="{source_local}" minlength="8" pattern="^[a-z0-9_-]+$" required><br>
                 <small>Lowercase letters, digits, underscore, dash; no dot or @; minimum 8 characters.</small><br><br>
-
+                
                 <label for="destination">{translations['destination_label']}</label><br>
                 <input type="text" id="destination" name="destination" value="{destination}" readonly><br><br>
-
+                
                 <div id="preview" style="font-weight:bold; font-size:1.3em; margin-bottom:15px; color:red; text-align:center;">
                     {alias[0]['source']} → {destination}
                 </div>
-
+                
                 <button type="submit" disabled>{translations['btn_modify']}</button>
                 <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
             </form>
         """
-
+        
         script_js = """
             <script>
             document.addEventListener('DOMContentLoaded', function() {
@@ -67,34 +67,34 @@ def edit_alias_handler(environ, start_response):
                 const destinationInput = document.getElementById('destination');
                 const preview = document.getElementById('preview');
                 const submitBtn = document.querySelector('#aliasEditForm button[type="submit"]');
-
+                
                 function validateAlias(source) {
                     return /^[a-z0-9_-]{8,}$/.test(source);
                 }
-
+                
                 function updatePreview() {
                     const sourceVal = sourceInput.value.trim();
                     const destVal = destinationInput.value.trim();
                     const domainPart = destVal.split('@')[1] || '';
                     const isValid = validateAlias(sourceVal);
-
-                    if (isValid) {
-                        preview.style.color = 'green';
+                    
+                    if (sourceVal) {
                         preview.textContent = sourceVal + '@' + domainPart + " → " + destVal;
-                        submitBtn.disabled = false;
+                        preview.style.color = isValid ? 'green' : 'red';
                     } else {
-                        preview.style.color = 'red';
                         preview.textContent = '?@' + domainPart + " → " + destVal;
-                        submitBtn.disabled = true;
+                        preview.style.color = 'red';
                     }
+                    
+                    submitBtn.disabled = !isValid;
                 }
-
+                
                 sourceInput.addEventListener('input', updatePreview);
                 updatePreview();
             });
             </script>
         """
-
+        
         form = form_html + script_js
         
         body = html_template(translations['edit_alias_title'], form,admin_user_email=admin_user_email,admin_role=admin_role)
@@ -150,7 +150,7 @@ def add_alias_handler(environ, start_response):
     if session is None or not session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/login")])
         return [b""]
-
+    
     if environ['REQUEST_METHOD'] == 'GET':
         # Extract destination from URL
         query_string = environ.get('QUERY_STRING', '')
@@ -179,19 +179,19 @@ def add_alias_handler(environ, start_response):
             {warning}
             <form method="POST" id="aliasAddForm">
                 <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
-
+                
                 <label for="source">{translations['source_label']}</label><br>
                 <input type="text" id="source" name="source" minlength="8" pattern="^[a-z0-9_-]+$" required {form_disabled} placeholder="alias"><br>
                 <small>Lowercase letters, digits, underscore, dash; no dot or @; minimum 8 characters.</small><br><br>
-
+                
                 <label for="destination">{translations['destination_label']}</label><br>
                 <input type="hidden" id="destination" name="destination" value="{destination}">
                 <strong>{destination}</strong><br><br>
-
+                
                 <div id="preview" style="font-weight:bold; font-size:1.3em; margin-bottom:15px; color:red; text-align:center;">
                     ?@domain.tld → mailbox@domain.tld
                 </div>
-
+                
                 <button type="submit" disabled {form_disabled}>{translations['btn_add']}</button>
                 <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
             </form>
@@ -204,38 +204,38 @@ def add_alias_handler(environ, start_response):
                 const destInput = document.getElementById('destination');
                 const previewDiv = document.getElementById('preview');
                 const submitBtn = document.querySelector('#aliasAddForm button[type="submit"]');
-
+                
                 function validateAlias(alias) {
                     return /^[a-z0-9_-]{8,}$/.test(alias);
                 }
-
+                
                 function updatePreview() {
                     const sourceVal = sourceInput.value.trim();
                     const destVal = destInput.value.trim();
                     const domainPart = destVal.split('@')[1] || '';
                     const valid = validateAlias(sourceVal) && destVal.includes('@');
-
+                    
                     const previewText = valid
                         ? sourceVal + '@' + domainPart + ' → ' + destVal
                         : '?@domain.tld → mailbox@domain.tld';
-
+                    
                     previewDiv.textContent = previewText;
                     previewDiv.style.color = valid ? 'green' : 'red';
                     submitBtn.disabled = !valid;
                 }
-
+                
                 sourceInput.addEventListener('input', updatePreview);
                 updatePreview();  // initial preview
             });
             </script>
         """
-
+        
         form = form_html + script_js
         
         body = html_template(translations['add_alias_title'], form, admin_user_email=admin_user_email, admin_role=admin_role)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
-
+    
     elif environ['REQUEST_METHOD'] == 'POST':
         # Parse data
         content_length = int(environ.get('CONTENT_LENGTH', 0))
@@ -244,11 +244,11 @@ def add_alias_handler(environ, start_response):
         source_raw = data.get('source', [''])[0].strip()
         destination = data.get('destination', [''])[0].strip()
         csrf_token = data.get('csrf_token', [''])[0]
-
+        
         if not session.validate_csrf_token(csrf_token):
             start_response("403 Forbidden", [("Content-Type", "text/html")])
             return [translations['csrf_invalid'].encode('utf-8')]
-
+        
         # Validation
         if not source_raw or not destination:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
@@ -268,14 +268,14 @@ def add_alias_handler(environ, start_response):
         if not can_create:
             start_response("403 Forbidden", [("Content-Type", "text/html")])
             return [translations['error_alias_limit_exceeded'].format(count=max_count).encode('utf-8')]
-
+        
         # Verifiy existing alias
         existing = fetch_all(config['sql_dovecot']['select_alias_by_source'], (source,))
         
         if existing:
             start_response("409 Conflict", [("Content-Type", "text/html")])
             return [translations['alias_exists'].encode('utf-8')]
-
+        
         # Fetch domain_id
         user = fetch_all(config['sql_dovecot']['select_user_by_email'], (destination,))
         
@@ -284,7 +284,7 @@ def add_alias_handler(environ, start_response):
             return [translations['destination_unknown'].encode('utf-8')]
         
         domain_id = user[0]['domain_id']
-
+        
         # insert new alias
         try:
             execute_query(config['sql_dovecot']['insert_alias'], (domain_id, source, destination))
@@ -307,11 +307,11 @@ def edit_user_handler(environ, start_response):
         query_string = environ.get('QUERY_STRING', '')
         params = parse_qs(query_string)
         user_id = params.get('id', [''])[0]
-
+        
         if not user_id.isdigit():
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['user_id_invalid'].encode('utf-8')]
-
+        
         user = fetch_all(config['sql_dovecot']['select_user_by_id'], (int(user_id),))
         if not user:
             start_response("404 Not Found", [("Content-Type", "text/html")])
@@ -371,12 +371,12 @@ def edit_user_handler(environ, start_response):
             return [translations['user_not_found'].encode('utf-8')]
         
         email = user[0]['email']
-    
+        
         try:
             if new_password:
                 alg = config['mailbox_hash']['algorithm']
                 prefix = config['mailbox_hash']['prefix']
-
+                
                 if alg == 'argon2id':
                     password_hash = argon2.using(
                         type='ID',
@@ -402,24 +402,24 @@ def edit_user_handler(environ, start_response):
                 else:
                     # Fallback
                     raise ValueError("Unsupported hash algorithm for Dovecot mailbox passwords.")
-
+                
                 crypt_value = prefix + password_hash
                 execute_query(config['sql']['update_user_password'], (crypt_value, int(user_id)))
-
+                
                 # Disable user
                 email = user[0]['email']
                 execute_query(config['sql']['disable_user'], (email,))
-
+                
                 # Generate token
                 import hashlib
                 token = hashlib.sha256(f"{email}{config['SECRET_KEY']}{int(time.time()/120)}".encode()).hexdigest()
-
+                
                 # Mark as rekey pending
                 execute_query(config['sql']['insert_rekey_pending'], (email, token, token))
             
             start_response("302 Found", [("Location", "/home")])
             return [b""]
-
+        
         except Exception as e:
             logging.error(f"Error when modifying: {e}")
             start_response("500 Internal Server Error", [("Content-Type", "text/html")])
@@ -431,16 +431,16 @@ def delete_user_handler(environ, start_response):
     if session is None or not session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/login")])
         return [b""]
-
+    
     if environ['REQUEST_METHOD'] == 'GET':
         query_string = environ.get('QUERY_STRING', '')
         params = parse_qs(query_string)
         user_id = params.get('id', [''])[0]
-
+        
         if not user_id.isdigit():
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['user_id_invalid'].encode('utf-8')]
-
+        
         user = fetch_all(config['sql_dovecot']['select_user_by_id'], (int(user_id),))
         if not user:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
@@ -481,7 +481,7 @@ def delete_user_handler(environ, start_response):
         if not session.validate_csrf_token(csrf_token):
             start_response("403 Forbidden", [("Content-Type", "text/html")])
             return [translations['csrf_invalid'].encode('utf-8')]
-    
+        
         if not user_id.isdigit():
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['user_id_invalid'].encode('utf-8')]
@@ -493,7 +493,7 @@ def delete_user_handler(environ, start_response):
         if not fetch_all(config['sql']['is_owner'], (admin_user_id, user_id)):
             start_response("403 Forbidden", [("Content-Type", "text/html")])
             return [translations['ownership_required'].encode('utf-8')]
-
+        
         # Fetch email
         user = fetch_all(config['sql']['select_user_by_id'], (int(user_id),))
         if not user:
@@ -501,7 +501,7 @@ def delete_user_handler(environ, start_response):
             return [translations['user_not_found'].encode('utf-8')]
         
         email = user[0]['email']
-
+        
         # Check whether there is no pending rekey
         rekey_active = fetch_all(config['sql']['select_rekey_pending'], (email,))
         
@@ -509,7 +509,7 @@ def delete_user_handler(environ, start_response):
             start_response("409 Conflict", [("Content-Type", "text/html")])
             body = html_template(translations['confirm_deletion_title'], f"<p>{translations['deletion_blocked_rekey']}</p>")
             return [body.encode()]
-
+        
         try:
             # Disable user
             execute_query(config['sql_dovecot']['disable_user'], (email,))
@@ -518,7 +518,7 @@ def delete_user_handler(environ, start_response):
             import hashlib
             import time
             token = hashlib.sha256(f"{email}{config['SECRET_KEY']}{int(time.time()/120)}".encode()).hexdigest()
-
+            
             # Mark deletion as pending
             execute_query(config['sql']['insert_deletion_pending'], (email, token, token))
                         
