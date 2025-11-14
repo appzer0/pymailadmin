@@ -218,18 +218,18 @@ translations = {
     'btn_finish_setup': 'Finish Setup',
     'config_write_failed': 'Failed to write configuration. Please check file permissions.',
     'cron_script_title': 'pymailadmin connector cron script for Dovecot',
-    'cron_script_instructions': 'You may now connect <strong>to your Dovecot mail server</strong>, then:<br><ul><li>make sure you have python3 and python3-mysqldb installed</li><li>Copy this script somewhere on your Dovecot server, e.g. /opt/pymailadmin/scripts/pymailadmin-cron.py</li><li>Then create a crontab task as follows:</li><li><pre>*/2 * * * * root /usr/bin/python3 /opt/pymailadmin/scripts/pymailadmin-cron.py</pre></li></ul>',
+    'cron_script_instructions': 'You may now connect <strong>to your Dovecot mail server</strong>, then:<br><ul><li>make sure you have python3 and python3-mysqldb installed</li><li>Copy this script somewhere on your Dovecot server, e.g. /opt/pymailadmin/pymailadmin-cron.py</li><li>Then create a crontab task as follows:</li><li><pre>*/2 * * * * /opt/pymailadmin/venv/bin/python /opt/pymailadmin/pymailadmin-cron.py</pre></li></ul>',
     'cron_script_footer': 'Installation complete! You can now proceed to use the admin panel.',
     'btn_copy_clipboard':'Copy to Clipboard',
     'goto_dashboard': 'Go to Admin Dashboard',
         
     # Creation pending
-    'creation_status': 'Initializing new mailbox…',
+    'creation_status': 'Initializing new mailbox...',
     'creation_note': 'Mailbox is being initialized. This may take a few minutes.',
 
     # Mailbox creation
     'create_mailbox_title': 'Create new mailbox',
-    'local_part_label': 'Username (local part)',
+    'local_part_label': 'Username (local part only, without domain)',
     'domain_label': 'Domain',
     'quota_label': 'Quota (in GB)',
     'btn_create': 'Create',
@@ -241,10 +241,11 @@ translations = {
     'mailbox_creation_password': 'Password',
     'mailbox_creation_quota': 'Quota',
     'mailbox_creation_passwords_match_hint': 'Repeat password to confirm. Passwords must match',
-    'mailbox_creation_mailbox_hint': 'Lowercase letters (a-z), digits 0-9, dash (-), underscore (_). Minimum 6 chars. No dots (.)',
+    # Keep the trailing space here, this is placeholder for the POSTFIX_SEPARATOR variable:
+    'mailbox_creation_mailbox_hint': 'Minimum 6 chars of lowercase letters (a-z), digits (0-9), dash (-), underscore (_). No ',
     'mailbox_creation_domain_hint': 'Choose a domain for you new mailbox',
-    'mailbox_creation_password_hint': 'Minimum 12 chars. No percent character (%)',
-    'mailbox_creation_quota_hint': 'The maximum quota in GB, up to 5 (GB)',
+    'mailbox_creation_password_hint': 'Minimum 12 chars. Make it complex enough',
+    'mailbox_creation_quota_hint': 'The maximum quota in GB, up to 5.',
 
     # Buttons / common
     'btn_yes': 'Yes',

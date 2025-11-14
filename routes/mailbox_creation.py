@@ -23,13 +23,30 @@ def create_mailbox_handler(environ, start_response):
     can_create, current_count, max_count = can_create_mailbox(admin_user_id)
     
     if environ['REQUEST_METHOD'] == 'GET':
-        # Get available domains
-        domains = fetch_all(config['sql_dovecot']['select_all_domains'], ())
+    
+        # Get domains
+        try:
+            if admin_role == 'super_admin':
+                # Get all domains for superadmin
+                domains = fetch_all(config['sql_dovecot']['select_all_domains'], ())
+                
+            else:
+                # Get allowed domains only for users/admins
+                allowed_domain_rows = fetch_all(config['sql']['select_domains_by_admin_user'], (admin_user_id,))
+                allowed_domain_ids = [row['domain_id'] for row in allowed_domain_rows] if allowed_domain_rows else []
+                
+                if not allowed_domain_ids:
+                    domains = []
+                
+                else:
+                    domains = fetch_all(config['sql_dovecot']['select_allowed_domains_by_admin'], (admin_user_id,))
         
-        domain_options = "".join(
-            f'<option value="{d["id"]}">{d["domain"]}</option>' 
-            for d in domains
-        )
+        except Exception as e:
+            logging.error(f"Error fetching domains: {e}")
+            domains = []
+        
+        # Build the domains drop-down list
+        domain_options = "".join(f'<option value="{d["id"]}">{d["domain"]}</option>' for d in domains)
         
         # Warning if limit reached
         if not can_create:
@@ -49,8 +66,8 @@ def create_mailbox_handler(environ, start_response):
                     <legend>{translations['mailbox_creation_mailbox']}</legend>
                     
                     <label for="local_part">{translations['local_part_label']}</label><br>
-                    <input type="text" id="local_part" name="local_part" placeholder="username" minlength="6" pattern="^[a-z0-9_-]+$" required {form_disabled}><br>
-                    <small>{translations['mailbox_creation_mailbox_hint']}</small><br><br>
+                    <input type="text" id="local_part" name="local_part" placeholder="username" minlength="6" maxlength="64" pattern="^[a-z0-9_-]+$" required {form_disabled}><br>
+                    <small>{translations['mailbox_creation_mailbox_hint']}{config['POSTFIX_SEPARATOR']}</small><br><br>
                     
                     <label for="domain_id">{translations['domain_label']}</label><br>
                     <select id="domain_id" name="domain_id" required {form_disabled}>
@@ -63,11 +80,11 @@ def create_mailbox_handler(environ, start_response):
                     <legend>{translations['mailbox_creation_password']}</legend>
                     
                     <label for="password">{translations['password_label']}</label><br>
-                    <input type="password" id="password" name="password" minlength="12" pattern="[^%]+" required {form_disabled}><br>
+                    <input type="password" id="password" name="password" minlength="12" maxlength="64" pattern="[^%]+" required {form_disabled}><br>
                     <small>{translations['mailbox_creation_password_hint']}</small><br><br>
                     
                     <label for="password_confirm">{translations['confirm_password_label']}</label><br>
-                    <input type="password" id="password_confirm" name="password_confirm" minlength="12" pattern="[^%]+" required {form_disabled}><br>
+                    <input type="password" id="password_confirm" name="password_confirm" minlength="12" maxlength="64" pattern="[^%]+" required {form_disabled}><br>
                     <small>{translations['mailbox_creation_passwords_match_hint']}</small><br><br>
                 </fieldset>
                 

@@ -124,6 +124,7 @@ dynamic_config = {
     'REGISTER_MAX_ATTEMPTS_PER_IP': os.getenv('REGISTER_MAX_ATTEMPTS_PER_IP', 3),
     'REGISTER_WINDOW_MINUTES': os.getenv('REGISTER_WINDOW_MINUTES', 60),
     'REGISTER_BLOCK_MINUTES': os.getenv('REGISTER_BLOCK_MINUTES', 60),
+    'POSTFIX_SEPARATOR': os.getenv('POSTFIX_SEPARATOR', '+'),
     
     'limits': {
         'max_mailboxes_per_user': int(os.getenv('MAX_MAILBOXES_PER_USER', 3)),
