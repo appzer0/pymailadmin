@@ -75,10 +75,10 @@ CREATE TABLE `pymailadmin_ownerships` (
 CREATE TABLE `pymailadmin_recovery_keys` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL,
-  `recovery_key` varchar(255) NOT NULL UNIQUE,
-  `expiry` datetime NOT NULL,
+  `recovery_key` varchar(255) NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+  UNIQUE KEY `user_id` (`user_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Mailboxes creation pendings

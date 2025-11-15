@@ -81,9 +81,9 @@ config = {
         'cleanup_expired_deletion': "DELETE FROM pymailadmin_deletion_pending WHERE created_at < NOW() - INTERVAL %s HOUR",
         
         # Recovery keys (unimplemented for now)
-        'insert_recovery_key': "INSERT INTO pymailadmin_recovery_keys (user_id, recovery_key, expiry) VALUES (%s, %s, %s)",
-        'select_recovery_key': "SELECT * FROM pymailadmin_recovery_keys WHERE user_id = %s AND recovery_key = %s AND expiry > NOW()",
+        'insert_recovery_key': "INSERT INTO pymailadmin_recovery_keys (user_id, recovery_key) VALUES (%s, %s)",
+        'select_recovery_hint': "SELECT recovery_key FROM pymailadmin_recovery_keys WHERE user_id = %s",
+        'update_recovery_key': "UPDATE pymailadmin_recovery_keys SET recovery_key = %s WHERE user_id = %s",
         'delete_recovery_key': "DELETE FROM pymailadmin_recovery_keys WHERE user_id = %s",
-        
     },   
 }

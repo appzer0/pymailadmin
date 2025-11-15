@@ -5,6 +5,7 @@ import base64, secrets
 import hashlib
 from utils.db import fetch_all, execute_query
 from utils.limits import can_create_mailbox
+from utils.recovery import generate_recovery_key, generate_hint_from_key
 from handlers.html import html_template
 import time
 import logging
@@ -263,14 +264,36 @@ def create_mailbox_handler(environ, start_response):
                 (admin_user_id, user_id, 1)  # is_primary=1 (unimplemented)
             )
             
+            # Add pending creation for Dovecot
             token = hashlib.sha256(f"{email}{config['SECRET_KEY']}{int(time.time()/120)}".encode()).hexdigest()
             execute_query(config['sql']['insert_creation_pending'], (email, token, token))
             
             logging.info(f"Mailbox {email} created and marked for doveadm initialization")
             
-            start_response("302 Found", [("Location", "/home")])
-            return [b""]
-
+            # Generate recovery key and hint from the key
+            full_recovery_key = generate_recovery_key()
+            hint = generate_hint_from_key(full_recovery_key)
+            
+            # Insert only short hint in table
+            execute_query(config['sql']['insert_recovery_key'], (user_id, hint))
+            
+            confirmation_html = f"""
+                <p>{translations['recovery_key_hint']}</p>
+                <p style="font-family:monospace; font-size:1.2em; background:#ffe; padding:10px; border:1px solid #cc0;">
+                    {full_recovery_key}
+                </p>
+                <button onclick="navigator.clipboard.writeText('{full_recovery_key}')">{translations['copy_the_key']}</button>
+                <p>{translations['recovery_key_copy_save']}</p>
+                <p><strong>{translations['recovery_key_not_visible_again']}</strong></p><br>
+                <p>{translations['mailbox_ongoing_creation_note']}</p><br>
+                <p><a href="/home">{translations['btn_i_saved_it']}</a></p>
+                
+            """
+            
+            body = html_template(translations['mailbox_created_title'], confirmation_html, admin_user_email=admin_user_email, admin_role=admin_role)
+            start_response("200 OK", [("Content-Type", "text/html")])
+            return [body.encode()]
+        
         except Exception as e:
             logging.error(f"Error creating mailbox: {e}")
             start_response("500 Internal Server Error", [("Content-Type", "text/html")])

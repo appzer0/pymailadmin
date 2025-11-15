@@ -128,6 +128,13 @@ translations = {
     'deletion_blocked_rekey': 'Cannot delete mailbox: a re-encryption is already running. Try again later.',
     'deletion_scheduled': 'Mailbox deletion scheduled.',
     'deletion_failed': 'Error when creating pending deletion',
+    'recovery_key_label': 'Your Recovery Key',
+    'notify_password_changed_subject': 'Password has just been changed for {email}',
+    'notify_password_changed_body': 'The password has just been changed for mailbox {email}.',
+    'notify_password_changed_date': 'Date:',
+    'notify_password_changed_admin': 'This action was performed by {admin_user_email}.',
+    'password_changed_title': 'Password changed',
+    'password_changed': 'Password has been changed. Your mailbox is being re-encrypted with new password.',
 
     # === routes/dashboard.py ===
     'dashboard_title': 'Dashboard',
@@ -246,6 +253,12 @@ translations = {
     'mailbox_creation_domain_hint': 'Choose a domain for you new mailbox',
     'mailbox_creation_password_hint': 'Minimum 12 chars. Make it complex enough',
     'mailbox_creation_quota_hint': 'The maximum quota in GB, up to 5.',
+    'mailbox_ongoing_creation_note': 'Your new encrypted mailbox is being created, please wait for it to activate.',
+    'recovery_key_': 'Your recovery key',
+    'copy_the_key': 'Copy the key',
+    'recovery_key_copy_save': 'This is your VERY IMPORTANT recovery key, in case you lose your password. Copy it or write it down somewhere safe, even in separated parts in different places, as the words are sorted alphabetically so you can retrieve the key easily.',
+    'recovery_key_not_visible_again': 'WARNING: this is your ONLY chance to save this recovery key. It will NOT be displayed again! If you lose BOTH your password AND your recovery key, you will lose ALL your emails! You have been warned!',
+    'link_i_saved_it': 'I saved it somewhere safe, take me to the Dashboard',
 
     # Buttons / common
     'btn_yes': 'Yes',

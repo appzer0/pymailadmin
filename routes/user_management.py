@@ -320,24 +320,29 @@ def edit_user_handler(environ, start_response):
         admin_user_email = session.data.get('email', '')
         admin_role = session.data.get('role', 'user')
     
+        # Generate form
         form = f"""
-        <form method="POST">
-            <input type="hidden" name="user_id" value="{user_id}">
-            <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
-            <label for="email">{translations['email_field_label']}</label><br>
-            <input type="email" id="email" name="email" value="{user[0]['email']}" required><br><br>
-            <label for="password">{translations['password_field_label']}</label><br>
-            <input type="password" id="password" name="password"><br><br>
-            <button type="submit">{translations['btn_modify_mailbox']}</button>
-            <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
-        </form>
+            <form method="POST">
+                <input type="hidden" name="user_id" value="{user_id}">
+                <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
+                <label for="email">{translations['email_field_label']}</label><br>
+                <input type="email" id="email" name="email" value="{user[0]['email']}" readonly><br><br>
+                <label for="recovery_key">{translations['recovery_key_label']}</label> ({hint})<br>
+                <input type="password" id="recovery_key" name="recovery_key" required><br><br>
+                <label for="password">{translations['password_field_label']}</label><br>
+                <input type="password" id="password" name="password" required><br><br>
+                <button type="submit">{translations['btn_modify_mailbox']}</button>
+                <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
+            </form>
         """
+        
         body = html_template(translations['edit_user_title'], form, admin_user_email=admin_user_email, admin_role=admin_role)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
 
     elif environ['REQUEST_METHOD'] == 'POST':
         content_length = int(environ.get('CONTENT_LENGTH', 0))
+        
         if content_length == 0:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['bad_request'].encode('utf-8')]
@@ -346,6 +351,7 @@ def edit_user_handler(environ, start_response):
         data = parse_qs(post_data)
         
         user_id = data.get('user_id', [''])[0]
+        recovery_key = data.get('recovery_key', [''])[0]
         new_password = data.get('password', [''])[0]
         csrf_token = data.get('csrf_token', [''])[0]
         
@@ -384,6 +390,7 @@ def edit_user_handler(environ, start_response):
                         memory_cost=config['mailbox_hash']['argon2_memory_cost'],
                         parallelism=config['mailbox_hash']['argon2_parallelism']
                     ).hash(new_password)
+                
                 elif alg == 'argon2i':
                     password_hash = argon2.using(
                         type='I',
@@ -391,14 +398,19 @@ def edit_user_handler(environ, start_response):
                         memory_cost=config['mailbox_hash']['argon2_memory_cost'],
                         parallelism=config['mailbox_hash']['argon2_parallelism']
                     ).hash(new_password)
+                
                 elif alg == 'bcrypt':
                     password_hash = bcrypt.using(rounds=config['mailbox_hash']['bcrypt_rounds']).hash(new_password)
+                
                 elif alg == 'sha512-crypt':
                     password_hash = sha512_crypt.hash(new_password)
+                
                 elif alg == 'sha256-crypt':
                     password_hash = sha256_crypt.hash(new_password)
+                
                 elif alg == 'pbkdf2':
                     password_hash = pbkdf2_sha256.using(rounds=config['mailbox_hash']['pbkdf2_rounds']).hash(new_password)
+                
                 else:
                     # Fallback
                     raise ValueError("Unsupported hash algorithm for Dovecot mailbox passwords.")
@@ -414,16 +426,49 @@ def edit_user_handler(environ, start_response):
                 import hashlib
                 token = hashlib.sha256(f"{email}{config['SECRET_KEY']}{int(time.time()/120)}".encode()).hexdigest()
                 
+                # Generate new recovery key
+                new_full_key = generate_recovery_key()
+                new_hint = generate_hint_from_key(new_full_key)
+                
+                # Replace old hint by new one
+                execute_query(config['sql']['update_recovery_key'], (new_hint, user_id))
+                
                 # Mark as rekey pending
                 execute_query(config['sql']['insert_rekey_pending'], (email, token, token))
-            
-            start_response("302 Found", [("Location", "/home")])
-            return [b""]
+                
+                # Send password change notification to admin
+                subject = f"[{PRETTY_NAME}] {translations['notify_password_changed_subject']}"
+                body = f"""
+                    {translations['notify_password_changed_body']}
+                    {translations['notify_password_changed_date']} {datetime.now().strftime('%Y-%m-%d %H:%M')}
+                    {translations['notify_password_changed_admin']}
+                """
+                
+                send_mail(admin_user_email, subject, body)
+                
+                except Exception as e:
+                    logging.error(f"Failed to send email notification: {e}")
+                
+                # Display confirmation with new key to user
+                confirmation_html = f"""
+                    <p>{translations['password_changed']}</p>
+                    <p>{translations['recovery_key_hint']}</p>
+                    <p style="font-family:monospace; font-size:1.2em; background:#ffe; padding:10px; border:1px solid #cc0;">
+                        {new_full_key}
+                    </p>
+                    <p>{translations['recovery_key_copy_save']}</p>
+                    <p><strong>{translations['recovery_key_not_visible_again']}</strong></p><br>
+                    <p><a href="/home">{translations['btn_i_saved_it']}</a></p>
+                """
+                
+                body = html_template(translations['password_changed_title'], confirmation_html, admin_user_email=admin_user_email, admin_role=admin_role)
+                start_response("200 OK", [("Content-Type", "text/html")])
+                return [body.encode()]
         
-        except Exception as e:
-            logging.error(f"Error when modifying: {e}")
-            start_response("500 Internal Server Error", [("Content-Type", "text/html")])
-            return [translations['user_modify_failed'].encode('utf-8')]
+    except Exception as e:
+        logging.error(f"Error changing password: {e}")
+        start_response("500 Internal Server Error", [("Content-Type", "text/html")])
+        return [translations['user_modify_failed'].encode('utf-8')]
 
 # --- Mailbox deletion ---
 def delete_user_handler(environ, start_response):
