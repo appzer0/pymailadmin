@@ -365,7 +365,7 @@ def edit_user_handler(environ, start_response):
             return [translations['ownership_required'].encode('utf-8')]
         
         # Fetch original email
-        user = fetch_all(config['sql']['select_user_by_id'], (int(user_id),))
+        user = fetch_all(config['sql_dovecot']['select_user_by_id'], (int(user_id),))
         if not user:
             start_response("404 Not Found", [("Content-Type", "text/html")])
             return [translations['user_not_found'].encode('utf-8')]
