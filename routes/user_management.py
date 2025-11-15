@@ -404,11 +404,11 @@ def edit_user_handler(environ, start_response):
                     raise ValueError("Unsupported hash algorithm for Dovecot mailbox passwords.")
                 
                 crypt_value = prefix + password_hash
-                execute_query(config['sql']['update_user_password'], (crypt_value, int(user_id)))
+                execute_query(config['sql_dovecot']['update_user_password'], (crypt_value, int(user_id)))
                 
                 # Disable user
                 email = user[0]['email']
-                execute_query(config['sql']['disable_user'], (email,))
+                execute_query(config['sql_dovecot']['disable_user'], (email,))
                 
                 # Generate token
                 import hashlib
@@ -495,7 +495,7 @@ def delete_user_handler(environ, start_response):
             return [translations['ownership_required'].encode('utf-8')]
         
         # Fetch email
-        user = fetch_all(config['sql']['select_user_by_id'], (int(user_id),))
+        user = fetch_all(config['sql_dovecot']['select_user_by_id'], (int(user_id),))
         if not user:
             start_response("404 Not Found", [("Content-Type", "text/html")])
             return [translations['user_not_found'].encode('utf-8')]

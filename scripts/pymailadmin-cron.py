@@ -76,6 +76,8 @@ SQL_SELECT_PENDING_CREATION = f"""
 """
 
 # We do not touch the following ones:
+SQL_SELECT_PENDING_REKEY = "SELECT email FROM pymailadmin_rekey_pending"
+SQL_DELETE_PENDING_REKEY = "DELETE FROM pymailadmin_rekey_pending WHERE email = %s"
 SQL_SELECT_PENDING_DELETION = "SELECT email FROM pymailadmin_deletion_pending WHERE created_at < NOW() - INTERVAL 48 HOUR"
 SQL_DELETE_PENDING_ENTRY = "DELETE FROM pymailadmin_deletion_pending WHERE email = %s"
 SQL_CLEANUP_EXPIRED_REKEY = "DELETE FROM pymailadmin_rekey_pending WHERE created_at < NOW() - INTERVAL 15 MINUTE"
@@ -106,6 +108,7 @@ def create_mailbox_with_doveadm(email):
         if "already exists" in stderr.lower():
             logging.warning(f"[DOVEADM] Mailbox already exists for: {email}")
             return True
+        
         logging.error(f"[DOVEADM] Creation failed for {email}: {stderr}")
         return False
     
@@ -127,6 +130,7 @@ def delete_mailbox_with_doveadm(email):
             check=True,
             timeout=60
         )
+        
         # Delete related mailboxes
         subprocess.run(
             ["doveadm", "mailbox", "delete", "-A", "-u", email, "*"],
@@ -134,15 +138,61 @@ def delete_mailbox_with_doveadm(email):
             check=True,
             timeout=60
         )
+        
         logging.info(f"[DOVEADM] Deleted mailbox for: {email}")
         return True
+    
     except subprocess.CalledProcessError as e:
         logging.error(f"[DOVEADM] Deletion failed for {email}: {e.stderr.decode()}")
         return False
+    
     except Exception as e:
         logging.error(f"[DOVEADM] Unexpected error for {email}: {e}")
         return False
 
+# REKEYS WITH DOVEADM
+def rekey_mailbox_with_doveadm(email):
+    """
+    Launch doveadm to rekey a mailbox with the new password.
+    """
+    try:
+        logging.info(f"[DOVEADM] Rekeying mailbox for: {email}")
+        result = subprocess.run(
+            ["doveadm", "crypto", "key", "-u", email],
+            capture_output=True,
+            check=True,
+            timeout=120
+        )
+        
+        # Check if command succeeded
+        if result.returncode == 0:
+            logging.info(f"[DOVEADM] Rekey successful for: {email}")
+            return True
+        
+        else:
+            stderr = result.stderr.decode()
+            logging.error(f"[DOVEADM] Crypto key failed for {email}: {stderr}")
+            return False
+    
+    except subprocess.CalledProcessError as e:
+        stderr = e.stderr.decode()
+        
+        if "User has no mail_crypt key" in stderr:
+            # No mail_crypt key, skip error
+            logging.warning(f"[DOVEADM] No mail_crypt key for: {email}")
+            return True
+        
+        logging.error(f"[DOVEADM] Rekeying failed for {email}: {stderr}")
+        return False
+
+    except subprocess.TimeoutExpired:
+        logging.error(f"[DOVEADM] Rekey command timed out for {email}")
+        return False
+
+    except Exception as e:
+        logging.error(f"[DOVEADM] Unexpected error for {email}: {e}")
+        return False
+        
 # MAIN FUNCTION
 def run_cron():
     logging.info("=== Starting pymailadmin cron task ===")
@@ -154,7 +204,7 @@ def run_cron():
         # ============================================
         # 1. PROCESS MAILBOX CREATIONS
         # ============================================
-        logging.info("[1/4] Processing pending mailbox creations...")
+        logging.info("[1/5] Processing pending mailbox creations...")
         
         cursor.execute(SQL_SELECT_PENDING_CREATION)
         pending_creations = cursor.fetchall()
@@ -176,7 +226,7 @@ def run_cron():
         # ============================================
         # 2. PROCESS MAILBOX DELETIONS
         # ============================================
-        logging.info("[2/4] Processing pending mailbox deletions...")
+        logging.info("[2/5] Processing pending mailbox deletions...")
         
         cursor.execute(SQL_SELECT_PENDING_DELETION)
         pending_deletions = cursor.fetchall()
@@ -188,34 +238,72 @@ def run_cron():
 
             for record in pending_deletions:
                 email = record['email']
+                
                 if delete_mailbox_with_doveadm(email):
+                    
                     # Delete account/user/mailbox from Dovecot database
                     cursor.execute(SQL_DELETE_USER_FROM_DOVECOT, (email,))
+                    
                     # Cleanup pending deletion
                     cursor.execute(SQL_DELETE_PENDING_ENTRY, (email,))
                     logging.info(f"  → [DB] Deletion pending cleaned for: {email}")
                     conn.commit()
-
-        # ============================================
-        # 3. CLEANUP EXPIRED REKEY PENDING
-        # ============================================
-        logging.info("[3/4] Cleaning up expired rekey_pending (> 15 min)...")
         
-        cursor.execute(SQL_CLEANUP_EXPIRED_REKEY)
-        deleted_rekeys = cursor.rowcount
-        logging.info(f"  → {deleted_rekeys} expired rekey(s) cleaned")
-        conn.commit()
+        # ============================================
+        # 3. PROCESS PENDING MAILBOX REKEYS
+        # ============================================
+        logging.info("[3/5] Processing pending mailbox rekey...")
+        
+        cursor.execute(SQL_SELECT_PENDING_REKEY)
+        pending_rekeys = cursor.fetchall()
 
+        if not pending_rekeys:
+            logging.info("  → No mailbox to rekey.")
+        
+        else:
+            logging.info(f"  → {len(pending_rekeys)} mailbox(es) pending rekey")
+
+            for record in pending_rekeys:
+                email = record['email']
+                
+                logging.info(f"  → [DB] Ongoing mailbox rekey for: {email}")
+                
+                if rekey_mailbox_with_doveadm(email):
+                    # Cleanup rekey pending
+                    cursor.execute(SQL_DELETE_PENDING_REKEY, (email,))
+                    
+                    logging.info(f"  → [DB] Rekey pending cleaned for: {email}")
+                    conn.commit()
+        
         # ============================================
         # 4. REACTIVATE USERS AFTER REKEY TIMEOUT
         # ============================================
-        logging.info("[4/4] Reactivating users after rekey timeout...")
+        logging.info("[4/5] Reactivating users after rekey timeout...")
         
         cursor.execute(SQL_REACTIVATE_USER_TIMEOUT)
+        pending_reactivations = cursor.fetchall()
         reactivated = cursor.rowcount
+        
+        for record in pending_reactivations:
+            email = record['email']
+            
+            logging.info(f"  → [DB] Reactivating mailbox for: {email}")
+        
         logging.info(f"  → {reactivated} user(s) reactivated")
         conn.commit()
+        
+        # ============================================
+        # 5. CLEANUP EXPIRED REKEY PENDING
+        # ============================================
+        logging.info("[5/5] Cleaning up expired rekey_pending (> 15 min)...")
 
+        cursor.execute(SQL_CLEANUP_EXPIRED_REKEY)
+        deleted_rekeys = cursor.rowcount
+            
+        logging.info(f"  → {deleted_rekeys} expired rekey(s) cleaned")
+        conn.commit()
+
+        # Close connection
         cursor.close()
         conn.close()
 
