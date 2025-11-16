@@ -24,8 +24,8 @@ config = get_config()
 
 import time
 import secrets
-from urllib.parse import parse_qs
 from datetime import datetime, timedelta
+from urllib.parse import parse_qs
 from config_loader import load_config
 from utils.db import execute_query, fetch_all
 from email.mime.text import MIMEText

@@ -24,6 +24,7 @@ from routes.initial_setup import config_wizard_handler
 
 import logging
 import os
+
 log_dir = '/var/log/pymailadmin'
 
 from libs import config
@@ -61,7 +62,10 @@ def application(environ, start_response):
             return [b"Bad request"]
 
         post_data = environ['wsgi.input'].read(content_length).decode('utf-8')
-        data = parse_qs(post_data)
+
+        import urllib.parse
+        data = urllib.parse.parse_qs(post_data)
+
         action = data.get('action', [''])[0]
 
         # Dispatch POST actions for /home
