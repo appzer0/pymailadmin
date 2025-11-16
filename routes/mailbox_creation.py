@@ -5,7 +5,7 @@ import base64, secrets
 import hashlib
 from utils.db import fetch_all, execute_query
 from utils.limits import can_create_mailbox
-from utils.recovery import generate_recovery_key, generate_hint_from_key
+from utils.recovery import generate_recovery_key, encrypt_admin_mailbox
 from handlers.html import html_template
 import time
 import logging
@@ -169,6 +169,7 @@ def create_mailbox_handler(environ, start_response):
         post_data = environ['wsgi.input'].read(content_length).decode('utf-8')
         data = parse_qs(post_data)
         
+        # Validate CSRF token
         csrf_token = data.get('csrf_token', [''])[0]
         
         if not session.validate_csrf_token(csrf_token):
@@ -270,12 +271,12 @@ def create_mailbox_handler(environ, start_response):
             
             logging.info(f"Mailbox {email} created and marked for doveadm initialization")
             
-            # Generate recovery key and hint from the key
+            # Generate recovery key and encrypt concatenated mailbox name + recovery key
             full_recovery_key = generate_recovery_key()
-            hint = generate_hint_from_key(full_recovery_key)
-            
-            # Insert only short hint in table
-            execute_query(config['sql']['insert_recovery_key'], (user_id, hint))
+            encrypted_hash = encrypt_admin_mailbox(email, full_recovery_key)
+
+            # Insert encrypted hash in recovery_keys table
+            execute_query(config['sql']['insert_recovery_key'], (user_id, encrypted_hash))
             
             confirmation_html = f"""
                 <p>{translations['recovery_key_hint']}</p>

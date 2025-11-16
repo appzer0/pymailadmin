@@ -135,6 +135,7 @@ translations = {
     'notify_password_changed_admin': 'This action was performed by {admin_user_email}.',
     'password_changed_title': 'Password changed',
     'password_changed': 'Password has been changed. Your mailbox is being re-encrypted with new password.',
+    'recovery_key_invalid': 'Recovery key is invalid',
 
     # === routes/dashboard.py ===
     'dashboard_title': 'Dashboard',

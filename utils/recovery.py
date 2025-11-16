@@ -2,6 +2,7 @@
 
 import random
 import string
+from argon2 import PasswordHasher, exceptions
 
 def generate_recovery_key():
     """
@@ -12,19 +13,37 @@ def generate_recovery_key():
     
     for _ in range(8):
         letters = ''.join(random.choices(string.ascii_lowercase, k=5))
-        digits = str(random.randint(00001, 99999))
+        # We need 5 digits so we zfill(5)
+        digits = str(random.randint(1, 99999)).zfill(5)
         parts.append(letters + digits)
     
     # Sort alphabetically
     parts.sort()
     return ' '.join(parts)
 
-def generate_hint_from_key(key):
+# Create hashing object
+ph = PasswordHasher()
+
+def encrypt_admin_mailbox(admin_mailbox: str, recovery_key: str) -> str:
     """
-    Hint for user to retrieve their recovery key
-    Input : "abcde12345 [...] vwxyz12345" → Output : "ab......45"
+    Ecnrypt the mailbox name with the recovery key in an undecryptable way
     """
-    first = key[:2]
-    last = key[-3:]
+    # Concat mailbox and recovery key for hashing
+    combined = admin_mailbox + recovery_key
+    return ph.hash(combined)
+
+def verify_admin_mailbox(recovery_key: str, admin_mailbox: str, stored_hash: str) -> bool:
+    """
+    Decrypt with the supplied, unstored recovery key
+    """
+    try:
+        combined = admin_mailbox + recovery_key
+        ph.verify(stored_hash, combined)
+        return True
     
-    return f"{first}......{last[:-1]}"
+    except exceptions.VerifyMismatchError:
+        return False
+    
+    except Exception:
+        return False
+

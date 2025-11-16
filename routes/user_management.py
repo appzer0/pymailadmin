@@ -1,13 +1,14 @@
 # routes/user_management.py
 
-from libs import config
-from utils.db import fetch_all, execute_query
-from handlers.html import html_template
 import time
 import logging
-from libs import argon2, bcrypt, sha512_crypt, sha256_crypt, pbkdf2_sha256
-from libs import parse_qs
+import datetime
+from utils.db import fetch_all, execute_query
+from handlers.html import html_template
+from libs import config, parse_qs, argon2, bcrypt, sha512_crypt, sha256_crypt, pbkdf2_sha256
 from utils.alias_limits import can_create_alias
+from utils.email import send_email
+from utils.recovery import generate_recovery_key, encrypt_admin_mailbox, verify_admin_mailbox
 from i18n.en_US import translations
 
 # --- Aliases management ---
@@ -319,6 +320,16 @@ def edit_user_handler(environ, start_response):
         
         admin_user_email = session.data.get('email', '')
         admin_role = session.data.get('role', 'user')
+        
+        # Get hint form DB
+        hint_records = fetch_all(config['sql']['select_recovery_hint'], (user_id,))
+        
+        # Rare testcases when recovery_key is missing, should not happen
+        if hint_records:
+            hint = hint_records[0]['recovery_key']
+        
+        else:
+            hint = ""
     
         # Generate form
         form = f"""
@@ -327,8 +338,9 @@ def edit_user_handler(environ, start_response):
                 <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
                 <label for="email">{translations['email_field_label']}</label><br>
                 <input type="email" id="email" name="email" value="{user[0]['email']}" readonly><br><br>
-                <label for="recovery_key">{translations['recovery_key_label']}</label> ({hint})<br>
-                <input type="password" id="recovery_key" name="recovery_key" required><br><br>
+                <label for="recovery_key">{translations['recovery_key_label']}</label><br>
+                <input type="password" id="recovery_key" name="recovery_key" required><br>
+                <small>{hint}</small><br>
                 <label for="password">{translations['password_field_label']}</label><br>
                 <input type="password" id="password" name="password" required><br><br>
                 <button type="submit">{translations['btn_modify_mailbox']}</button>
@@ -426,25 +438,46 @@ def edit_user_handler(environ, start_response):
                 import hashlib
                 token = hashlib.sha256(f"{email}{config['SECRET_KEY']}{int(time.time()/120)}".encode()).hexdigest()
                 
+                # Get recovery hash
+                recovery_records = fetch_all(config['sql']['select_recovery_key'], (user_id,))
+                
+                # Check hash to validate recovery key
+                if not recovery_records:
+                    # Rare testcases where key is missing, insert a temporary blank one
+                    execute_query(config['sql']['insert_recovery_key'], (user_id, ""))
+                    stored_hash = ""
+                    
+                else:
+                    stored_hash = recovery_records[0]['recovery_key']
+                    
+                if stored_hash and not verify_admin_mailbox(recovery_key, email, stored_hash):
+                    start_response("403 Forbidden", [("Content-Type", "text/html")])
+                    return [translations['recovery_key_invalid'].encode('utf-8')]
+                
+                # Everything's OK here, let's update
+                
                 # Generate new recovery key
                 new_full_key = generate_recovery_key()
-                new_hint = generate_hint_from_key(new_full_key)
                 
-                # Replace old hint by new one
-                execute_query(config['sql']['update_recovery_key'], (new_hint, user_id))
+                # Encrypt it with mailbox name
+                new_encrypted_hash = encrypt_admin_mailbox(email, new_full_key)
+                
+                # Replace old key with new one
+                execute_query(config['sql']['update_recovery_key'], (new_encrypted_hash, user_id))
                 
                 # Mark as rekey pending
                 execute_query(config['sql']['insert_rekey_pending'], (email, token, token))
                 
                 # Send password change notification to admin
-                subject = f"[{PRETTY_NAME}] {translations['notify_password_changed_subject']}"
+                subject = f"[{config['PRETTY_NAME']}] {translations['notify_password_changed_subject']}"
                 body = f"""
                     {translations['notify_password_changed_body']}
                     {translations['notify_password_changed_date']} {datetime.now().strftime('%Y-%m-%d %H:%M')}
                     {translations['notify_password_changed_admin']}
                 """
                 
-                send_mail(admin_user_email, subject, body)
+                try:
+                    send_email(admin_user_email, subject, body)
                 
                 except Exception as e:
                     logging.error(f"Failed to send email notification: {e}")
@@ -465,10 +498,10 @@ def edit_user_handler(environ, start_response):
                 start_response("200 OK", [("Content-Type", "text/html")])
                 return [body.encode()]
         
-    except Exception as e:
-        logging.error(f"Error changing password: {e}")
-        start_response("500 Internal Server Error", [("Content-Type", "text/html")])
-        return [translations['user_modify_failed'].encode('utf-8')]
+        except Exception as e:
+            logging.error(f"Error changing password: {e}")
+            start_response("500 Internal Server Error", [("Content-Type", "text/html")])
+            return [translations['user_modify_failed'].encode('utf-8')]
 
 # --- Mailbox deletion ---
 def delete_user_handler(environ, start_response):
