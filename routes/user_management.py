@@ -20,10 +20,16 @@ def edit_alias_handler(environ, start_response):
         return [b""]
     
     if environ['REQUEST_METHOD'] == 'GET':
-        query_string = environ.get('QUERY_STRING', '')
-        params = parse_qs(query_string)
-        alias_id = params.get('id', [''])[0]
-
+        content_length = int(environ.get('CONTENT_LENGTH', 0))
+        
+        if content_length == 0:
+            start_response("400 Bad Request", [("Content-Type", "text/html")])
+            return [b"Bad request"]
+        
+        post_data = environ['wsgi.input'].read(content_length).decode('utf-8')
+        data = parse_qs(post_data)
+        alias_id = data.get('alias_id', [''])[0]
+        
         if not alias_id.isdigit():
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['alias_id_invalid'].encode('utf-8')]
@@ -153,10 +159,15 @@ def add_alias_handler(environ, start_response):
         return [b""]
     
     if environ['REQUEST_METHOD'] == 'GET':
-        # Extract destination from URL
-        query_string = environ.get('QUERY_STRING', '')
-        params = parse_qs(query_string)
-        destination = params.get('destination', [''])[0]
+        content_length = int(environ.get('CONTENT_LENGTH', 0))
+        
+        if content_length == 0:
+            start_response("400 Bad Request", [("Content-Type", "text/html")])
+            return [b"Bad request"]
+        
+        post_data = environ['wsgi.input'].read(content_length).decode('utf-8')
+        data = parse_qs(post_data)
+        destination = data.get('destination', [''])[0]
 
         if not destination or '@' not in destination:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
@@ -305,9 +316,15 @@ def edit_user_handler(environ, start_response):
         return [b""]
 
     if environ['REQUEST_METHOD'] == 'GET':
-        query_string = environ.get('QUERY_STRING', '')
-        params = parse_qs(query_string)
-        user_id = params.get('id', [''])[0]
+        content_length = int(environ.get('CONTENT_LENGTH', 0))
+        
+        if content_length == 0:
+            start_response("400 Bad Request", [("Content-Type", "text/html")])
+            return [b"Bad request"]
+        
+        post_data = environ['wsgi.input'].read(content_length).decode('utf-8')
+        data = parse_qs(post_data)
+        user_id = data.get('user_id', [''])[0]
         
         if not user_id.isdigit():
             start_response("400 Bad Request", [("Content-Type", "text/html")])
@@ -321,16 +338,6 @@ def edit_user_handler(environ, start_response):
         admin_user_email = session.data.get('email', '')
         admin_role = session.data.get('role', 'user')
         
-        # Get hint form DB
-        hint_records = fetch_all(config['sql']['select_recovery_hint'], (user_id,))
-        
-        # Rare testcases when recovery_key is missing, should not happen
-        if hint_records:
-            hint = hint_records[0]['recovery_key']
-        
-        else:
-            hint = ""
-    
         # Generate form
         form = f"""
             <form method="POST">
@@ -340,7 +347,6 @@ def edit_user_handler(environ, start_response):
                 <input type="email" id="email" name="email" value="{user[0]['email']}" readonly><br><br>
                 <label for="recovery_key">{translations['recovery_key_label']}</label><br>
                 <input type="password" id="recovery_key" name="recovery_key" required><br>
-                <small>{hint}</small><br>
                 <label for="password">{translations['password_field_label']}</label><br>
                 <input type="password" id="password" name="password" required><br><br>
                 <button type="submit">{translations['btn_modify_mailbox']}</button>
@@ -511,9 +517,15 @@ def delete_user_handler(environ, start_response):
         return [b""]
     
     if environ['REQUEST_METHOD'] == 'GET':
-        query_string = environ.get('QUERY_STRING', '')
-        params = parse_qs(query_string)
-        user_id = params.get('id', [''])[0]
+        content_length = int(environ.get('CONTENT_LENGTH', 0))
+        
+        if content_length == 0:
+            start_response("400 Bad Request", [("Content-Type", "text/html")])
+            return [b"Bad request"]
+        
+        post_data = environ['wsgi.input'].read(content_length).decode('utf-8')
+        data = parse_qs(post_data)
+        user_id = data.get('user_id', [''])[0]
         
         if not user_id.isdigit():
             start_response("400 Bad Request", [("Content-Type", "text/html")])
@@ -540,6 +552,7 @@ def delete_user_handler(environ, start_response):
             <a href="/home"><button type="button">{translations['btn_no_cancel']}</button></a>
         </form>
         """
+        
         body = html_template(translations['confirm_deletion_title'], form,admin_user_email=admin_user_email,admin_role=admin_role)
         start_response("200 OK", [("Content-Type", "text/html")])
         return [body.encode()]
