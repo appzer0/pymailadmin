@@ -76,15 +76,8 @@ def home_handler(environ, start_response):
         
         domain_rows += f"""
         <tr>
-            <td>
-                <form method="POST">
-                    <input type="hidden" name="action" value="domain">
-                    <input type="hidden" name="domain_id" value="{domain_id}">
-                    <button type="submit">{domain_name}</button></form>
-            </td>
-            <td>
-                {mailbox_count}
-            </td>
+            <td><a href="/domain?id={domain_id}">{domain_name}</a></td>
+            <td>{mailbox_count}</td>
         </tr>
         """
     
@@ -98,13 +91,12 @@ def home_handler(environ, start_response):
         </div>
         """
         
-        create_btn = f"""
-        <form method="POST">
-            <input type="hidden" name="action" value="create_mailbox">
-            <button>{translations["create_mailbox_btn"]}</button>
-        </form>
-        """ if can_create else f'<button disabled="disabled">{translations["create_mailbox_btn_disabled"]}</button>'
-    
+        if can_create:
+            create_btn = f'<a href="/createmailbox"><button>{translations["create_mailbox_btn"]}</button></a>'
+        
+        else:
+            create_btn = f'<button disabled="disabled">{translations["create_mailbox_btn_disabled"]}</button>'
+            
     else:
         counter_html = ""
         create_btn = ""
@@ -142,16 +134,10 @@ def domain_handler(environ, start_response):
         start_response("302 Found", [("Location", "/login")])
         return []
 
-    # Get domain ID
-    content_length = int(environ.get('CONTENT_LENGTH', 0))
-    
-    if content_length == 0:
-        start_response("400 Bad Request", [("Content-Type", "text/html")])
-        return [b"Invalid request"]
-    
-    post_data = environ['wsgi.input'].read(content_length).decode('utf-8')
-    data = parse_qs(post_data)
-    domain_id = data.get('domain_id', [''])[0]
+    # Get domain ID from query string
+    query_string = environ.get('QUERY_STRING', '')
+    params = parse_qs(query_string)
+    domain_id = params.get('id', [''])[0]
     
     if not domain_id or not domain_id.isdigit():
         start_response("400 Bad Request", [("Content-Type", "text/html")])
@@ -242,13 +228,7 @@ def domain_handler(environ, start_response):
         
         # Actions column (only for non-super_admin)
         if admin_role == 'super_admin':
-            actions = f"""
-                <form method="POST">
-                    <input type="hidden" name="action" value="view_mailbox">
-                    <input type="hidden" name="user_id" value="{user_id}">
-                    <button>{translations["btn_view"]}</button>
-                </form>
-            """
+            actions = f'<a href="/mailbox?id={user_id}">{translations["btn_view"]}</a>'
     
         else:
             # Check if can add alias
@@ -258,13 +238,7 @@ def domain_handler(environ, start_response):
                 actions = f"<em>{translations['pending']}</em>"
     
             else:
-                actions = f"""
-                    <form method="POST">
-                        <input type="hidden" name="action" value="manage_mailbox">
-                        <input type="hidden" name="user_id" value="{user_id}">
-                        <button>{translations["btn_manage"]}</button>
-                    </form>
-                """
+                actions = f'<a href="/mailbox?id={user_id}">{translations["btn_manage"]}</a>'
         
         rows += f"""
         <tr>
@@ -307,15 +281,9 @@ def mailbox_handler(environ, start_response):
         return []
 
     # Get mailbox ID from query string
-    content_length = int(environ.get('CONTENT_LENGTH', 0))
-    
-    if content_length == 0:
-        start_response("400 Bad Request", [("Content-Type", "text/html")])
-        return [b"Invalid request"]
-    
-    post_data = environ['wsgi.input'].read(content_length).decode('utf-8')
-    data = parse_qs(post_data)
-    user_id = data.get('user_id', [''])[0]
+    query_string = environ.get('QUERY_STRING', '')
+    params = parse_qs(query_string)
+    user_id = params.get('id', [''])[0]
     
     if not user_id or not user_id.isdigit():
         start_response("400 Bad Request", [("Content-Type", "text/html")])
@@ -385,13 +353,7 @@ def mailbox_handler(environ, start_response):
             actions = ""
         
         else:
-            actions = f"""
-                <form method="POST">
-                    <input type="hidden" name="action" value="edit_alias">
-                    <input type="hidden" name="alias_id" value="{alias['id']}">
-                    <button type="submit">{translations["btn_modify"]}</button>
-                </form>
-            """
+            actions = f'<a href="/editalias?id={alias["id"]}">{translations["btn_modify"]}</a>'
         
         alias_rows += f"""
         <tr>
@@ -405,13 +367,7 @@ def mailbox_handler(environ, start_response):
     if admin_role != 'super_admin':
         
         if can_add_alias:
-            add_alias_btn = f"""
-            <form method="POST">
-                <input type="hidden" name="action" value="add_alias">
-                <input type="hidden" name="destination" value="{email}">
-                <button>{translations["btn_add_alias"]}</button>
-            </form>
-            """
+            add_alias_btn = f'<a href="/addalias?destination={email}"><button>{translations["btn_add_alias"]}</button></a>'
         
         else:
             add_alias_btn = f'<button disabled="disabled">{translations["btn_add_alias"]} ({translations["limit_reached"]})</button>'
@@ -424,16 +380,8 @@ def mailbox_handler(environ, start_response):
         actions_section = f"""
         <h3>{translations['mailbox_actions_title']}</h3>
         <p>
-            <form method="POST">
-                <input type="hidden" name="action" value="edit_user">
-                <input type="hidden" name="user_id" value="{user_id}">
-                <button>{translations["change_password_btn"]}</button>
-            </form>
-            <form method="POST">
-                <input type="hidden" name="action" value="delete_user">
-                <input type="hidden" name="user_id" value="{user_id}">
-                <button style="background: red; color: white;">{translations["btn_delete"]}</button>
-            </form>
+            <a href="/edituser?id={user_id}"><button>{translations["change_password_btn"]}</button></a>
+            <a href="/deleteuser?id={user_id}"><button style="background: red; color: white;">{translations["btn_delete"]}</button></a>
         </p>
         """
     
@@ -443,13 +391,7 @@ def mailbox_handler(environ, start_response):
     content = f"""
     <h2>{translations['mailbox_details_title']}</h2>
     
-    <p>
-        <form method="POST">
-            <input type="hidden" name="action" value="domain">
-            <input type="hidden" name="domain_id" value="{domain_id}">
-            <button type="submit">{translations['back_to_domain']}</button>
-        </form>
-    </p>
+    <p><a href="/domain?id={domain_id}">{translations['back_to_domain']}</a></p>
     
     <div>
         <p><strong>{translations['email_label']}:</strong> {email}</p>

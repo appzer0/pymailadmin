@@ -1,7 +1,6 @@
 # app.py
 
 from middleware.session import SessionMiddleware
-from utils.route_dispatcher import dispatch_route
 from routes.login import login_handler
 from routes.dashboard import home_handler, domain_handler, mailbox_handler
 from routes.mailbox_creation import create_mailbox_handler
@@ -25,7 +24,6 @@ from routes.initial_setup import config_wizard_handler
 
 import logging
 import os
-
 log_dir = '/var/log/pymailadmin'
 
 from libs import config
@@ -41,9 +39,8 @@ logging.basicConfig(
 
 def application(environ, start_response):
     path = environ.get('PATH_INFO', '').rstrip('/')
-    method = environ.get('REQUEST_METHOD', 'GET')
     
-    ## Initial-setup wizard, unimplented for now:
+    ## Unimplented for now:
     ## If superadmin does not exist, route to the initial-setup wizard
     #if not check_super_admin_exists():
     #    if path != '/setup/config':
@@ -53,96 +50,61 @@ def application(environ, start_response):
     #    if path == '/setup/config':
     #        try: return config_wizard_handler(environ, start_response)
     #        except Exception as e: logging.error(f"Error in config_wizard_handler: {e}"); return [b"Error in initial_setup.py"]
-    
-    # Routes
-    if path.startswith('/static/'):
-        return static_handler(environ, start_response)
-    
-    if path == '/login':
-        return dispatch_route(
-            path, method, environ, start_response,
-            get_handler=login_handler,
-            post_handler=login_handler
-        )
-    
-    elif path == '/home':
-        return dispatch_route(
-            path, method, environ, start_response,
-            get_handler=home_handler,
-            post_action_mapping={
-                'domain': domain_handler,
-                'create_mailbox': create_mailbox_handler
-            }
-        )
-    
-    elif path == '/domain':
-        return dispatch_route(
-            path, method, environ, start_response,
-            get_handler=None,
-            post_action_mapping={
-                'view_mailbox': mailbox_handler,
-                'manage_mailbox': mailbox_handler
-            }
-        )
-    
-    elif path == '/mailbox':
-        return dispatch_route(
-            path, method, environ, start_response,
-            get_handler=None,
-            post_action_mapping={
-                'edit_alias': edit_alias_handler,
-                'add_alias': add_alias_handler,
-                'edit_user': edit_user_handler,
-                'delete_user': delete_user_handler
-            }
-        )
-    
-    elif path == '/register':
-        return dispatch_route(
-            path, method, environ, start_response,
-            get_handler=register_handler,
-            post_handler=register_handler
-        )
-    
-    elif path == '/register/confirm':
-        return dispatch_route(
-            path, method, environ, start_response,
-            get_handler=confirm_registration_handler
-        )
-    
-    elif path == '/moderate/pending':
-        return dispatch_route(
-            path, method, environ, start_response,
-            get_handler=moderation_queue_handler
-        )
-    
-    elif path == '/moderate/approve':
-        return dispatch_route(
-            path, method, environ, start_response,
-            post_handler=approve_registration_handler
-        )
-    
-    elif path == '/moderate/deny':
-        return dispatch_route(
-            path, method, environ, start_response,
-            post_handler=deny_registration_handler
-        )
-    
-    elif path == '/createmailbox':
-        return dispatch_route(
-            path, method, environ, start_response,
-            get_handler=create_mailbox_handler
-        )
-    
-    elif path == '/logout':
-        return dispatch_route(
-            path, method, environ, start_response,
-            get_handler=logout_handler
-        )
-    
-    # Fallback on login
-    start_response("302 Found", [("Location", "/login")])
-    return [b"Redirecting to login (fallback)"]
+ 
+    try:
+        # Routes
+        if path == '' or path == '/':
+            start_response("302 Found", [("Location", "/login")])
+            return [b"Redirecting to login..."]
+        elif path == '/login':
+            response = login_handler(environ, start_response)
+        elif path == '/home':
+            response = home_handler(environ, start_response)
+        elif path == '/domain':
+            response = domain_handler(environ, start_response)
+        elif path == '/mailbox':
+            response = mailbox_handler(environ, start_response)
+        elif path == '/createmailbox':
+            response = create_mailbox_handler(environ, start_response)
+        elif path == '/editalias':
+            response = edit_alias_handler(environ, start_response)
+        elif path == '/addalias':
+            response = add_alias_handler(environ, start_response)
+        elif path == '/edituser':
+            response = edit_user_handler(environ, start_response)
+        elif path == '/deleteuser':
+            response = delete_user_handler(environ, start_response)
+        elif path.startswith('/static/'):
+            response = static_handler(environ, start_response)
+        elif path == '/register':
+            response = register_handler(environ, start_response)
+        elif path == '/register/confirm':
+            response = confirm_registration_handler(environ, start_response)
+        elif path == '/moderate/pending':
+            response = moderation_queue_handler(environ, start_response)
+        elif path == '/moderate/approve':
+            response = approve_registration_handler(environ, start_response)
+        elif path == '/moderate/deny':
+            response = deny_registration_handler(environ, start_response)
+        elif path == '/logout':
+            response = logout_handler(environ, start_response)
+        else:
+            start_response("302 Found", [("Location", "/login")])
+            return [b"Redirecting to login (fallback)"]
+
+        response = list(response) if response is not None else [b'Internal Server Error']
+
+        if response is None:
+            logging.error(f"Handler for {path} returned None")
+            start_response("500 Internal Server Error", [("Content-Type", "text/plain")])
+            return [b"Internal Server Error: no response"]
+
+        return response
+
+    except Exception as e:
+        logging.error(f"Unhandled exception in handler for {path}: {e}", exc_info=True)
+        start_response("500 Internal Server Error", [("Content-Type", "text/plain")])
+        return [b"Internal Server Error"]
 
 # Middleware
 app = SessionMiddleware(application)
