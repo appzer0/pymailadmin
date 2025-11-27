@@ -8,7 +8,8 @@ from handlers.html import html_template
 from libs import config, parse_qs, argon2, bcrypt, sha512_crypt, sha256_crypt, pbkdf2_sha256
 from utils.alias_limits import can_create_alias
 from utils.email import send_email
-from utils.recovery import generate_recovery_key, encrypt_admin_mailbox, verify_admin_mailbox
+from utils.recovery import generate_recovery_key, encrypt_recovery, verify_recovery, recover_mb_password
+from utils.doveadm_api import doveadm_create_mailbox, doveadm_rekey_mailbox_generate, doveadm_rekey_mailbox_password, doveadm_delete_user, doveadm_delete_mailbox
 from i18n.en_US import translations
 
 # --- Aliases management ---
@@ -154,6 +155,7 @@ def edit_alias_handler(environ, start_response):
 # --- Aliases creations ---
 def add_alias_handler(environ, start_response):
     session = environ.get('session', None)
+    
     if session is None or not session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/login")])
         return [b""]
@@ -311,6 +313,7 @@ def add_alias_handler(environ, start_response):
 # --- Mailbox edits ---
 def edit_user_handler(environ, start_response):
     session = environ.get('session', None)
+    
     if session is None or not session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/login")])
         return [b""]
@@ -343,14 +346,21 @@ def edit_user_handler(environ, start_response):
             <form method="POST">
                 <input type="hidden" name="user_id" value="{user_id}">
                 <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
+                
                 <label for="email">{translations['email_field_label']}</label><br>
                 <input type="email" id="email" name="email" value="{user[0]['email']}" readonly><br><br>
+                
                 <label for="recovery_key">{translations['recovery_key_label']}</label><br>
                 <input type="password" id="recovery_key" name="recovery_key" required><br>
+                <small>{translations['recovery_key_hint']}</small>
+                
                 <label for="password">{translations['password_field_label']}</label><br>
                 <input type="password" id="password" name="password" required><br><br>
+                
                 <button type="submit">{translations['btn_modify_mailbox']}</button>
                 <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
+                
+                <p><a href="/recovery">{translations['i_lost_password_or_recovery']}</a></p>
             </form>
         """
         
@@ -436,43 +446,38 @@ def edit_user_handler(environ, start_response):
                 crypt_value = prefix + password_hash
                 execute_query(config['sql_dovecot']['update_user_password'], (crypt_value, int(user_id)))
                 
+                ## TODO: wait for doveadm to finish rekeying mailbox before reenable mailbox
                 # Disable user
                 email = user[0]['email']
                 execute_query(config['sql_dovecot']['disable_user'], (email,))
                 
-                # Generate token
-                import hashlib
-                token = hashlib.sha256(f"{email}{config['SECRET_KEY']}{int(time.time()/120)}".encode()).hexdigest()
-                
-                # Get recovery hash
+                # Get recovery key pair
                 recovery_records = fetch_all(config['sql']['select_recovery_key'], (user_id,))
                 
-                # Check hash to validate recovery key
                 if not recovery_records:
-                    # Rare testcases where key is missing, insert a temporary blank one
-                    execute_query(config['sql']['insert_recovery_key'], (user_id, ""))
-                    stored_hash = ""
-                    
-                else:
-                    stored_hash = recovery_records[0]['recovery_key']
-                    
-                if stored_hash and not verify_admin_mailbox(recovery_key, email, stored_hash):
-                    start_response("403 Forbidden", [("Content-Type", "text/html")])
-                    return [translations['recovery_key_invalid'].encode('utf-8')]
+                    # Rare testcases where key is missing, insert temporary blank pair
+                    execute_query(config['sql']['insert_recovery_key'], (user_id, "", ""))
                 
-                # Everything's OK here, let's update
+                enc_master_key = recovery_records[0]['recovery_key']
+                enc_mb_password = recovery_records[0]['enc_mb_password']
                 
-                # Generate new recovery key
-                new_full_key = generate_recovery_key()
+                # Recover the old password as plain
+                try:
+                    old_mb_password = recover_mb_password(enc_master_key, enc_mb_password, recovery_key)
                 
-                # Encrypt it with mailbox name
-                new_encrypted_hash = encrypt_admin_mailbox(email, new_full_key)
+                 except Exception as e:
+                    logging.error(f"Failed to recover password: {e}")
                 
-                # Replace old key with new one
-                execute_query(config['sql']['update_recovery_key'], (new_encrypted_hash, user_id))
+                # Everything seems OK here, let's update.
                 
-                # Mark as rekey pending
-                execute_query(config['sql']['insert_rekey_pending'], (email, token, token))
+                # Generate and encrypt recoverable key pair with new password
+                recovery_key = generate_recovery_key()
+                enc_master_key, enc_mb_password = generate_and_store_master_key(mb_password=new_password, recovery_password=recovery_key)
+                
+                # Insert into recovery_keys table
+                execute_query(config['sql']['update_recovery_key'], (enc_master_key, enc_mb_password, user_id))
+                
+                ### Add doveadm API stuff here
                 
                 # Send password change notification to admin
                 subject = f"[{config['PRETTY_NAME']}] {translations['notify_password_changed_subject']}"
@@ -493,7 +498,7 @@ def edit_user_handler(environ, start_response):
                     <p>{translations['password_changed']}</p>
                     <p>{translations['recovery_key_hint']}</p>
                     <p style="font-family:monospace; font-size:1.2em; background:#ffe; padding:10px; border:1px solid #cc0;">
-                        {new_full_key}
+                        {recovery_key}
                     </p>
                     <p>{translations['recovery_key_copy_save']}</p>
                     <p><strong>{translations['recovery_key_not_visible_again']}</strong></p><br>
@@ -512,6 +517,7 @@ def edit_user_handler(environ, start_response):
 # --- Mailbox deletion ---
 def delete_user_handler(environ, start_response):
     session = environ.get('session', None)
+    
     if session is None or not session.data.get('logged_in'):
         start_response("302 Found", [("Location", "/login")])
         return [b""]
@@ -532,6 +538,7 @@ def delete_user_handler(environ, start_response):
             return [translations['user_id_invalid'].encode('utf-8')]
         
         user = fetch_all(config['sql_dovecot']['select_user_by_id'], (int(user_id),))
+        
         if not user:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['user_not_found'].encode('utf-8')]
@@ -559,6 +566,7 @@ def delete_user_handler(environ, start_response):
 
     elif environ['REQUEST_METHOD'] == 'POST':
         content_length = int(environ.get('CONTENT_LENGTH', 0))
+        
         if content_length == 0:
             start_response("400 Bad Request", [("Content-Type", "text/html")])
             return [translations['bad_request'].encode('utf-8')]
@@ -593,14 +601,15 @@ def delete_user_handler(environ, start_response):
         
         email = user[0]['email']
         
-        # Check whether there is no pending rekey
-        rekey_active = fetch_all(config['sql']['select_rekey_pending'], (email,))
-        
-        if rekey_active:
-            start_response("409 Conflict", [("Content-Type", "text/html")])
-            body = html_template(translations['confirm_deletion_title'], f"<p>{translations['deletion_blocked_rekey']}</p>")
-            return [body.encode()]
-        
+        ## OBSOLETE:
+        ## Check whether there is no pending rekey
+        #rekey_active = fetch_all(config['sql']['select_rekey_pending'], (email,))
+        #
+        #if rekey_active:
+        #    start_response("409 Conflict", [("Content-Type", "text/html")])
+        #    body = html_template(translations['confirm_deletion_title'], f"<p>{translations['deletion_blocked_rekey']}</p>")
+        #    return [body.encode()]
+        # 
         try:
             # Disable user
             execute_query(config['sql_dovecot']['disable_user'], (email,))

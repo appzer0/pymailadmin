@@ -76,6 +76,7 @@ CREATE TABLE `pymailadmin_recovery_keys` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL,
   `recovery_key` varchar(255) NOT NULL,
+  `enc_mb_password` TEXT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `user_id` (`user_id`),
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),

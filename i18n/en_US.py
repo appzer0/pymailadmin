@@ -136,7 +136,21 @@ translations = {
     'password_changed_title': 'Password changed',
     'password_changed': 'Password has been changed. Your mailbox is being re-encrypted with new password.',
     'recovery_key_invalid': 'Recovery key is invalid',
+    'recovery_key_hint': 'This is the Recovery Key we told you to save before. It consists of eight space-separated 10-characters words (5 letters + 5 digits), each word is separated by a space and the words are alphabetically sorted. NO SPACES at the beginning or at the end. Example: panda12345 abcde67890 [other words] vwxyz16842',
+    'i_lost_password_or_recovery': 'I\'ve lost my Password or my Recovery Key! Take me to the Recovery process...',
 
+    # === routes/recovery_process.py ===
+    'recovery_title': 'Recovery Process',
+    'recovery_message': 'So you\'ve lost either your password or your recvovery key? BAD! Choose one of the methods below to reset one of those.',
+    'lost_mailbox_password_label': 'Reset Mailbox Password with Recovery Key',
+    'lost_mailbox_password_hint': 'You may reset your mailbox password here. To accomplish that, you absolutely need your recovery key. Paste it below and enter your new password. We won\'t be able to modify your password without the recovery key!',
+    'current_password_field_label': 'Your current mailbox password',
+    'lost_mailbox_recovery_label': 'Regenerate Recovery Key with your Current Mailbox Password',
+    'lost_mailbox_recovery_hint': 'You may regenerate a recovery key here. To accomplish that, you absolutely need your current mailbox password. Paste it below and we\'ll reencrypt your mailbox and your new recovery key with your password. It could take some time, depending of the mailbox total size. Note that we cannot guarantee mails\' integrity from now on: any error during the process might break mail data definitely. It is a VERY SERIOUS operation!',
+    'lost_both_label': 'Lost Both Recovery Key AND Password',
+    'lost_both_hint': 'We are VERY VERY SORRY to hear that. There is now NO possibility to recover your mailbox, all mail data is now definitely LOST and UNREADABLE, nobody can recover it, you, us, nobody. If you obtained your mails as plain text, by example, in a mail client like Thunderbird, quit the client containing your synchronized mails or switch it offline to make sure you keep them locally and make a backup. We are now unable to help you, the only remaining option is to destroy the mailbox and re-create an empty brand new one.',
+    'destroy_recreate_mailbox_button': 'Sure. DESTROY my Mailbox and re-create an empty one. Sad.',
+    
     # === routes/dashboard.py ===
     'dashboard_title': 'Dashboard',
     'mailbox_col': 'Mailbox',

@@ -5,7 +5,8 @@ import base64, secrets
 import hashlib
 from utils.db import fetch_all, execute_query
 from utils.limits import can_create_mailbox
-from utils.recovery import generate_recovery_key, encrypt_admin_mailbox
+from utils.recovery import generate_recovery_key, encrypt_recovery, generate_and_store_master_key
+from utils.doveadm_api import doveadm_create_mailbox, doveadm_rekey_mailbox_generate
 from handlers.html import html_template
 import time
 import logging
@@ -144,7 +145,7 @@ def create_mailbox_handler(environ, start_response):
                 localPart.addEventListener('input', updatePreview);
                 domainSelect.addEventListener('change', updatePreview);
                 quotaInput.addEventListener('input', updatePreview);
-                password.addEventereventListener('input', updatePreview);
+                password.addEventListener('input', updatePreview);
                 passwordConfirm.addEventListener('input', updatePreview);
                 
                 updatePreview(); // initial update
@@ -265,25 +266,30 @@ def create_mailbox_handler(environ, start_response):
                 (admin_user_id, user_id, 1)  # is_primary=1 (unimplemented)
             )
             
-            # Add pending creation for Dovecot
-            token = hashlib.sha256(f"{email}{config['SECRET_KEY']}{int(time.time()/120)}".encode()).hexdigest()
-            execute_query(config['sql']['insert_creation_pending'], (email, token, token))
-            
-            logging.info(f"Mailbox {email} created and marked for doveadm initialization")
-            
-            # Generate recovery key and encrypt concatenated mailbox name + recovery key
-            full_recovery_key = generate_recovery_key()
-            encrypted_hash = encrypt_admin_mailbox(email, full_recovery_key)
+            # Generate and encrypt recoverable key pair
+            recovery_key = generate_recovery_key()
+            enc_master_key, enc_mb_password = generate_and_store_master_key(mb_password=password, recovery_password=recovery_key)
 
-            # Insert encrypted hash in recovery_keys table
-            execute_query(config['sql']['insert_recovery_key'], (user_id, encrypted_hash))
+            # Insert into recovery_keys table
+            execute_query(config['sql']['insert_recovery_key'], (user_id, enc_master_key, enc_mb_password))
             
+            # Trigger doveadm:
+            try:
+                doveadm_create_mailbox(email)
+                doveadm_rekey_mailbox_generate(email, password)
+            
+            except Exception as err:
+                logging.error(f"Failed to initialize mailbox in Dovecot for {email}: {err}")
+                start_response("500 Internal Server Error", [("Content-Type", "text/html")])
+                return [translations['mailbox_creation_failed'].encode('utf-8')]
+            
+            # Display confirmation
             confirmation_html = f"""
                 <p>{translations['recovery_key_hint']}</p>
                 <p style="font-family:monospace; font-size:1.2em; background:#ffe; padding:10px; border:1px solid #cc0;">
-                    {full_recovery_key}
+                    {recovery_key}
                 </p>
-                <button onclick="navigator.clipboard.writeText('{full_recovery_key}')">{translations['copy_the_key']}</button>
+                <button onclick="navigator.clipboard.writeText('{recovery_key}')">{translations['copy_the_key']}</button>
                 <p>{translations['recovery_key_copy_save']}</p>
                 <p><strong>{translations['recovery_key_not_visible_again']}</strong></p><br>
                 <p>{translations['mailbox_ongoing_creation_note']}</p><br>

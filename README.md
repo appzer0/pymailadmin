@@ -2,10 +2,10 @@
 
 ## English (see below for French)
 
-This repo is a work-in-progress for pymailadmin, an Dovecot-based mail server web admin for users
-Python3/gunicorn systemd-compliant app, listening on 127.0.0.1:8686 by default.
+This repo is a work-in-progress for pymailadmin, a Dovecot-based mail server web admin for users and admins.
+It is a Python3/gunicorn systemd-compliant app, listening on 127.0.0.1:8686 by default.
 
-It aims at being compatible with any mail server setups, given they are based on Dovecot interfaced with MySQL lookups and using a functional mail_crypt plugin setup.
+It aims at being compatible with any mail server setups, given they are based on Dovecot interfaced with MySQL lookups and using a functional mail-crypt plugin setup.
 
 NOT TO USE IN PRODUCTION
 
@@ -13,13 +13,14 @@ NOT TO USE IN PRODUCTION
 
   * Administrate your Dovecot-based encrypted mail server
   * Uses your Dovecot database without altering it.
+  * Uses the Dovecot HTTP API.
   * Supports registering as a new mailbox user.
   * Users manage their mailboxes and aliases on their own.
   * Supplies a moderation interface for new registrations.
   * Supports maximum mailboxes number and maximum aliases number per mailbox.
-  * When password change for a mailbox, a rekey occurs and mailbox is disabled for 15 minutes for storage to be reencrypted.
-  * Mailboxes deletions requests are in pending state, deletions actually occur after 48 hours (via a crontask).
-  * Supports a web frontend admin server seperated from you Dovecot mail server.
+  * Uses a recovery key pair encrypted with a one-time displayed recovery key to store mailbox passwords.
+  * When password change for a mailbox, a rekey occurs and mailbox is disabled for storage to be reencrypted.
+  * Supports a web frontend admin server separated from you Dovecot mail server.
 
 ### Requirements
 
@@ -28,7 +29,7 @@ System:
   * A Debian-based system (tested on Debian 13 "trixie" only).
   * A fully functional mail server running Dovecot 2.4.1+ for auth and mail management.
   * A fully functional Dovecot installation, talking to a MySQL/MariaDB database.
-  * A fully functional Dovecot ``mail_crypt`` plugin setup for mail storage encryption.
+  * A fully functional Dovecot ``mail-crypt`` plugin setup for mail storage encryption.
   * An acceptable hash algorithm for mail passwords. pymailadmin supports the following algorithms ONLY:
     * ``argon2id``
     * ``argon2i``
@@ -188,9 +189,9 @@ That's all for your Dovecot host.
 ## French / Français
 
 Ce dépôt est un travail en cours pour pymailadmin, une interface web d'admin de serveur mail Dovecot pour les utilisateur⋅ices et admins.
-Application Python3/gunicorn compatible systemd, écoutant sur 127.0.0.1:8686 par défaut.
+C'est une application Python3/gunicorn compatible systemd, écoutant sur 127.0.0.1:8686 par défaut.
 
-Le but est d'être compatible avec toute installation de serveur mail, basée sur Dovecot interfacé à MySQL et avec le plugin mail_crypt fonctionnel.
+Le but est d'être compatible avec toute installation de serveur mail, basée sur Dovecot interfacé à MySQL et avec le plugin mail-crypt fonctionnel.
 
 A NE PAS UTILISER EN PRODUCTION
 
@@ -198,13 +199,14 @@ A NE PAS UTILISER EN PRODUCTION
 
   * Administrez votre serveur de mail chiffré basé sur Dovecot.
   * Utilise votre base de données Dovecot sans l'altérer.
+  * Utilise l'API HTTP de Dovecot.
   * Prend en charge l'inscription utilisateur⋅ice.
   * Les utilisateur⋅ices gèrent leurs boites et leur alias en autonomie.
   * Fournit une interface de modération pour les admins.
   * Les utilisateur⋅ices gèrent leurs boites mails et leur alias.
   * Prend en charge un nombre maximum de boites mail et d'alias par boite.
-  * Quand le mot de passe de la boite mail change, un rechiffrement en attente est créé et la boite est désactivée 15 minutes pour le rechiffrement.
-  * Les demande de suppression de boites mail sont placées en attente et la suppression se fait après 48 hours (via cron).
+  * Utilise une paire de clefs de récupération chiffrées avec un mot de passe affiché une seule fois pour stocker les mots de passe.
+  * Quand le mot de passe de la boite mail change, un rechiffrement en attente est créé et la boite est désactivée pour le rechiffrement.
   * Prend en charge un serveur web frontal séparé de votre serveur mail Dovecot.
 
 ### Pré-requis
@@ -214,7 +216,7 @@ Système :
   * Un seveur basé sur Debian (testé uniquement sur Debian 13 "trixie").
   * Un serveur mail fonctionnel basé sur Dovecot 2.4.1+ pour l'authentification et la gestion des boites mail.
   * Dovecot fonctionnel, interfacé à une base de données MySQL/MariaDB.
-  * Le greffon ``mail_crypt`` fonctionnel pour le chiffrement du stockage des mails.
+  * Le greffon ``mail-crypt`` fonctionnel pour le chiffrement du stockage des mails.
   * Un algorithme de hashage acceptable pour les mots de passe mail. pymailadmin prend en charge UNIQUEMENT :
     * ``argon2id``
     * ``argon2i``

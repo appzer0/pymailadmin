@@ -98,6 +98,10 @@ def create_mailbox_with_doveadm(email):
             check=True,
             timeout=30
         )
+        ### Missing step to implement:
+        # doveadm -o plugin/mail_crypt_private_password=12345 mailbox cryptokey generate -u {email} -URf
+        ### End of Missing step
+        
         logging.info(f"[DOVEADM] Created mailbox for: {email}")
         return True
     
@@ -158,6 +162,7 @@ def rekey_mailbox_with_doveadm(email):
     try:
         logging.info(f"[DOVEADM] Rekeying mailbox for: {email}")
         result = subprocess.run(
+            # It seems the "mailbox cryptokey" command is invalid here:
             ["doveadm", "crypto", "key", "-u", email],
             capture_output=True,
             check=True,
