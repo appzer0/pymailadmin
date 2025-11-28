@@ -191,18 +191,6 @@ def domain_handler(environ, start_response):
         logging.error(f"Error fetching mailboxes: {e}")
         users_data = []
     
-    # Get pending states
-    try:
-        rekey_emails = [r['email'] for r in fetch_all(config['sql']['select_all_rekey_pending'], ())]
-        deletion_emails = [r['email'] for r in fetch_all(config['sql']['select_all_deletion_pending'], ())]
-        creation_emails = [r['email'] for r in fetch_all(config['sql']['select_all_creation_pending'], ())]
-    
-    except Exception as e:
-        logging.error(f"Error fetching pending states: {e}")
-        rekey_emails = []
-        deletion_emails = []
-        creation_emails = []
-    
     # Build mailbox rows
     rows = ""
     
@@ -212,19 +200,6 @@ def domain_handler(environ, start_response):
         
         # Get alias count for this mailbox
         alias_count = get_alias_count(email)
-        
-        # Determine status
-        if email in creation_emails:
-            status = translations['creation_status']
-    
-        elif email in rekey_emails:
-            status = translations['rekey_status']
-    
-        elif email in deletion_emails:
-            status = translations['deletion_status']
-    
-        else:
-            status = translations['active_status']
         
         # Actions column (only for non-super_admin)
         if admin_role == 'super_admin':
@@ -244,7 +219,6 @@ def domain_handler(environ, start_response):
         <tr>
             <td>{email}</td>
             <td>{alias_count}</td>
-            <td>{status}</td>
             <td>{actions}</td>
         </tr>
         """
@@ -257,12 +231,11 @@ def domain_handler(environ, start_response):
             <tr>
                 <th>{translations['email_col']}</th>
                 <th>{translations['aliases_count_col']}</th>
-                <th>{translations['status_col']}</th>
                 <th>{translations['actions_col']}</th>
             </tr>
         </thead>
         <tbody>
-            {rows if rows else f'<tr><td colspan="4">{translations["no_mailboxes"]}</td></tr>'}
+            {rows if rows else f'<tr><td colspan="3">{translations["no_mailboxes"]}</td></tr>'}
         </tbody>
     </table>
     """

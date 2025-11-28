@@ -83,19 +83,9 @@ def generate_sql_queries(schema):
             SELECT COUNT(*) as count 
             FROM pymailadmin_ownerships o
             INNER JOIN {schema['table_users']} u ON o.user_id = u.{schema['field_user_id']}
-            LEFT JOIN pymailadmin_deletion_pending dp ON u.{schema['field_user_email']} = dp.email
-            WHERE o.admin_user_id = %s AND dp.email IS NULL
+            WHERE o.admin_user_id = %s
         """,
         
-        # Reactivate after rekey timeout
-        'reactivate_user_after_rekey_timeout': f"""
-            UPDATE {schema['table_users']} 
-            INNER JOIN (
-                SELECT email FROM pymailadmin_rekey_pending 
-                WHERE created_at < NOW() - INTERVAL %s MINUTE
-            ) AS expired ON {schema['table_users']}.{schema['field_user_email']} = expired.email 
-            SET {schema['table_users']}.{schema['field_user_active']} = 1
-        """,
     }
     
     # Aliases queries

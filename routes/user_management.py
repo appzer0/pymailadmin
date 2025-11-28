@@ -8,7 +8,6 @@ from handlers.html import html_template
 from libs import config, parse_qs, argon2, bcrypt, sha512_crypt, sha256_crypt, pbkdf2_sha256
 from utils.alias_limits import can_create_alias
 from utils.email import send_email
-from utils.recovery import generate_recovery_key, encrypt_recovery, verify_recovery, recover_mb_password
 from utils.doveadm_api import doveadm_create_mailbox, doveadm_rekey_mailbox_generate, doveadm_rekey_mailbox_password, doveadm_delete_user, doveadm_delete_mailbox
 from i18n.en_US import translations
 
@@ -446,38 +445,14 @@ def edit_user_handler(environ, start_response):
                 crypt_value = prefix + password_hash
                 execute_query(config['sql_dovecot']['update_user_password'], (crypt_value, int(user_id)))
                 
-                ## TODO: wait for doveadm to finish rekeying mailbox before reenable mailbox
                 # Disable user
                 email = user[0]['email']
                 execute_query(config['sql_dovecot']['disable_user'], (email,))
                 
-                # Get recovery key pair
-                recovery_records = fetch_all(config['sql']['select_recovery_key'], (user_id,))
-                
-                if not recovery_records:
-                    # Rare testcases where key is missing, insert temporary blank pair
-                    execute_query(config['sql']['insert_recovery_key'], (user_id, "", ""))
-                
-                enc_master_key = recovery_records[0]['recovery_key']
-                enc_mb_password = recovery_records[0]['enc_mb_password']
-                
-                # Recover the old password as plain
-                try:
-                    old_mb_password = recover_mb_password(enc_master_key, enc_mb_password, recovery_key)
-                
-                 except Exception as e:
-                    logging.error(f"Failed to recover password: {e}")
-                
                 # Everything seems OK here, let's update.
                 
-                # Generate and encrypt recoverable key pair with new password
-                recovery_key = generate_recovery_key()
-                enc_master_key, enc_mb_password = generate_and_store_master_key(mb_password=new_password, recovery_password=recovery_key)
-                
-                # Insert into recovery_keys table
-                execute_query(config['sql']['update_recovery_key'], (enc_master_key, enc_mb_password, user_id))
-                
                 ### Add doveadm API stuff here
+                ### TODO: wait for doveadm to finish rekeying mailbox before reenable mailbox
                 
                 # Send password change notification to admin
                 subject = f"[{config['PRETTY_NAME']}] {translations['notify_password_changed_subject']}"
@@ -601,32 +576,17 @@ def delete_user_handler(environ, start_response):
         
         email = user[0]['email']
         
-        ## OBSOLETE:
-        ## Check whether there is no pending rekey
-        #rekey_active = fetch_all(config['sql']['select_rekey_pending'], (email,))
-        #
-        #if rekey_active:
-        #    start_response("409 Conflict", [("Content-Type", "text/html")])
-        #    body = html_template(translations['confirm_deletion_title'], f"<p>{translations['deletion_blocked_rekey']}</p>")
-        #    return [body.encode()]
-        # 
         try:
             # Disable user
             execute_query(config['sql_dovecot']['disable_user'], (email,))
-            
-            # Generate token
-            import hashlib
-            import time
-            token = hashlib.sha256(f"{email}{config['SECRET_KEY']}{int(time.time()/120)}".encode()).hexdigest()
-            
-            # Mark deletion as pending
-            execute_query(config['sql']['insert_deletion_pending'], (email, token, token))
+
+            ### Trigger doveadm
                         
             # Redirect to confirmation message
             start_response("302 Found", [("Location", "/home")])
             return [b""]
         
         except Exception as e:
-            logging.error(f"Error when creating pending deletion: {e}")
+            logging.error(f"Error when deleting mailbox: {e}")
             start_response("500 Internal Server Error", [("Content-Type", "text/html")])
             return [translations['deletion_failed'].encode('utf-8')]

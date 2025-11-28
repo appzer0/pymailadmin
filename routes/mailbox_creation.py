@@ -5,7 +5,6 @@ import base64, secrets
 import hashlib
 from utils.db import fetch_all, execute_query
 from utils.limits import can_create_mailbox
-from utils.recovery import generate_recovery_key, encrypt_recovery, generate_and_store_master_key
 from utils.doveadm_api import doveadm_create_mailbox, doveadm_rekey_mailbox_generate
 from handlers.html import html_template
 import time
@@ -266,13 +265,6 @@ def create_mailbox_handler(environ, start_response):
                 (admin_user_id, user_id, 1)  # is_primary=1 (unimplemented)
             )
             
-            # Generate and encrypt recoverable key pair
-            recovery_key = generate_recovery_key()
-            enc_master_key, enc_mb_password = generate_and_store_master_key(mb_password=password, recovery_password=recovery_key)
-
-            # Insert into recovery_keys table
-            execute_query(config['sql']['insert_recovery_key'], (user_id, enc_master_key, enc_mb_password))
-            
             # Trigger doveadm:
             try:
                 doveadm_create_mailbox(email)
@@ -285,16 +277,8 @@ def create_mailbox_handler(environ, start_response):
             
             # Display confirmation
             confirmation_html = f"""
-                <p>{translations['recovery_key_hint']}</p>
-                <p style="font-family:monospace; font-size:1.2em; background:#ffe; padding:10px; border:1px solid #cc0;">
-                    {recovery_key}
-                </p>
-                <button onclick="navigator.clipboard.writeText('{recovery_key}')">{translations['copy_the_key']}</button>
-                <p>{translations['recovery_key_copy_save']}</p>
-                <p><strong>{translations['recovery_key_not_visible_again']}</strong></p><br>
-                <p>{translations['mailbox_ongoing_creation_note']}</p><br>
-                <p><a href="/home">{translations['btn_i_saved_it']}</a></p>
-                
+                <p>{translations['mailbox_created']}</p>
+                <ul><li>{email}</li></ul>
             """
             
             body = html_template(translations['mailbox_created_title'], confirmation_html, admin_user_email=admin_user_email, admin_role=admin_role)

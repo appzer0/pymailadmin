@@ -94,9 +94,7 @@ def approve_registration_handler(environ, start_response):
         # Insert new mailbox
         execute_query(config['sql']['insert_user_from_registration'], (email, reg['password_hash'], 'user'))
         
-        # Insert mailbox creation pending for the Dovecot connector cron task
-        token = secrets.token_urlsafe(32)
-        execute_query(config['sql']['insert_creation_pending'], (email, token, token))
+        ### Trigger doveadm here
         
         # Get user ID
         user_row = fetch_all(config['sql']['select_admin_user_by_email'], (email,))
@@ -117,7 +115,7 @@ def approve_registration_handler(environ, start_response):
             except ValueError:
                 pass
         
-        # Then cleanup pending registration
+        # Then cleanup registration
         execute_query(config['sql']['delete_registration_by_email'], (email,))
     
     except Exception as e:

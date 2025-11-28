@@ -72,8 +72,6 @@ def application(environ, start_response):
             response = add_alias_handler(environ, start_response)
         elif path == '/edituser':
             response = edit_user_handler(environ, start_response)
-        elif path == '/recovery':
-            response = recovery_handler(environ, start_response)
         elif path == '/deleteuser':
             response = delete_user_handler(environ, start_response)
         elif path.startswith('/static/'):

@@ -1,4 +1,4 @@
-# routes/user_management.py
+# routes/recovery_process.py
 
 import time
 import logging
@@ -36,6 +36,7 @@ def recovery_handler(environ, start_response):
             return [translations['user_id_invalid'].encode('utf-8')]
         
         user = fetch_all(config['sql_dovecot']['select_user_by_id'], (int(user_id),))
+        
         if not user:
             start_response("404 Not Found", [("Content-Type", "text/html")])
             return [translations['user_not_found'].encode('utf-8')]
@@ -45,13 +46,6 @@ def recovery_handler(environ, start_response):
         
         # Generate form
         form = f"""
-                
-    'lost_mailbox_recovery_label': 'Regenerate Recovery Key with your Current Mailbox Password',
-    'lost_mailbox_recovery_hint': 'You may regenerate a recovery key here. To accomplish that, you absolutely need your current mailbox password. Paste it below and we\'ll reencrypt your mailbox and your new recovery key with your password. It could take some time, depending of the mailbox total size. Note that we cannot guarantee mails\' integrity from now on: any error during the process might break mail data definitely. It is a VERY SERIOUS operation!',
-    'lost_both_label': 'Lost Both Recovery Key AND Password',
-    'lost_both_hint': 'We are VERY VERY SORRY to hear that. There is now NO possibility to recover your mailbox, all mail data is now definitely LOST and UNREADABLE, nobody can recover it, you, us, nobody. If you obtained your mails as plain text, by example, in a mail client like Thunderbird, quit the client containing your synchronized mails or switch it offline to make sure you keep them locally and make a backup. We are now unable to help you, the only remaining option is to destroy the mailbox and re-create an empty brand new one.',
-    'destroy_recreate_mailbox_button': 'Sure. DESTROY my Mailbox and re-create an empty one. Sad.',
-            
                 <p><strong>{translations['recovery_message']}</strong></p>
 
                 <form method="POST">
@@ -69,8 +63,8 @@ def recovery_handler(environ, start_response):
                         
                         <label for="password">{translations['current_password_field_label']}</label><br>
                         <input type="password" id="current_password" name="current_password" required><br><br>
-                        ############################
-                        <button type="submit">{translations['btn_modify_mailbox']}</button>
+                        
+                        <button type="submit">{translations['btn_change_pwd_reencrypt']}</button>
                         <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
                 </form>
                 
@@ -78,8 +72,10 @@ def recovery_handler(environ, start_response):
                         <input type="hidden" name="user_id" value="{user_id}">
                         <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
                         
-                        <label for="email">{translations['email_field_label']}</label><br>
+                        <label for="email">{translations['lost_mailbox_recovery_label']}</label><br>
                         <input type="email" id="email" name="email" value="{user[0]['email']}" readonly><br><br>
+                        
+                        <p>{translations['lost_mailbox_recovery_hint']}</p>
                         
                         <label for="recovery_key">{translations['recovery_key_label']}</label><br>
                         <input type="password" id="recovery_key" name="recovery_key" required><br>
@@ -88,7 +84,7 @@ def recovery_handler(environ, start_response):
                         <label for="password">{translations['password_field_label']}</label><br>
                         <input type="password" id="password" name="password" required><br><br>
                         
-                        <button type="submit">{translations['btn_modify_mailbox']}</button>
+                        <button type="submit">{translations['btn_change_recovery_reencrypt']}</button>
                         <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
                 </form>
                 
@@ -96,17 +92,12 @@ def recovery_handler(environ, start_response):
                         <input type="hidden" name="user_id" value="{user_id}">
                         <input type="hidden" name="csrf_token" value="{session.get_csrf_token()}">
                         
-                        <label for="email">{translations['email_field_label']}</label><br>
+                        <label for="email">{translations['lost_both_label']}</label><br>
                         <input type="email" id="email" name="email" value="{user[0]['email']}" readonly><br><br>
                         
-                        <label for="recovery_key">{translations['recovery_key_label']}</label><br>
-                        <input type="password" id="recovery_key" name="recovery_key" required><br>
-                        <small>{translations['recovery_key_hint']}</small>
-                        
-                        <label for="password">{translations['password_field_label']}</label><br>
-                        <input type="password" id="password" name="password" required><br><br>
-                        
-                        <button type="submit">{translations['btn_modify_mailbox']}</button>
+                        <p><strong>{translations['lost_both_hint']}</strong></p>
+
+                        <button type="submit">{translations['destroy_recreate_mailbox_button']}</button>
                         <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
                 </form>
         """

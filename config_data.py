@@ -40,7 +40,7 @@ config = {
         'add_ownership': "INSERT INTO pymailadmin_ownerships (admin_user_id, user_id, is_primary) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE is_primary = VALUES(is_primary)",
         'remove_ownership': "DELETE FROM pymailadmin_ownerships WHERE admin_user_id = %s AND user_id = %s",
         
-        # Pending registrations
+        # Registrations
         'insert_admin_registration': "INSERT INTO pymailadmin_admin_registrations (email, password_hash, confirmation_hash, expires_at, reason) VALUES (%s, %s, %s, %s, %s)",
         'delete_admin_registration_by_email': "DELETE FROM pymailadmin_admin_registrations WHERE email = %s",
         'select_admin_registration_by_email_unconfirmed': "SELECT * FROM pymailadmin_admin_registrations WHERE email = %s AND confirmed = 1 AND expires_at > NOW()",
@@ -62,28 +62,6 @@ config = {
             WHERE o.admin_user_id = %s
             ORDER BY d.{field_domain_name}
         """,
-                
-        # Pending creations for mailboxes
-        'insert_creation_pending': 'INSERT INTO pymailadmin_creation_pending (email, token) VALUES (%s, %s) ON DUPLICATE KEY UPDATE token = %s',
-        'select_creation_pending': 'SELECT email FROM pymailadmin_creation_pending WHERE email = %s',
-        'select_all_creation_pending': 'SELECT email FROM pymailadmin_creation_pending',
-        'delete_creation_pending': 'DELETE FROM pymailadmin_creation_pending WHERE email = %s',
-        'cleanup_expired_creation': "DELETE FROM pymailadmin_creation_pending WHERE created_at < NOW() - INTERVAL %s HOUR",
-        
-        # Pending rekeys for mail_crypt, pendings for mailboxes deletion
-        'insert_rekey_pending': 'INSERT INTO pymailadmin_rekey_pending (email, token) VALUES (%s, %s) ON DUPLICATE KEY UPDATE token = %s',
-        'select_rekey_pending': 'SELECT email FROM pymailadmin_rekey_pending WHERE email = %s',
-        'select_all_rekey_pending': 'SELECT email FROM pymailadmin_rekey_pending',
-        'deletion_pending': 'SELECT email FROM pymailadmin_deletion_pending WHERE email = %s',
-        'select_deletion_pending': 'SELECT email FROM pymailadmin_deletion_pending WHERE email = %s',
-        'insert_deletion_pending': 'INSERT INTO pymailadmin_deletion_pending (email, token, confirmed) VALUES (%s, %s, 1) ON DUPLICATE KEY UPDATE token = %s, confirmed = 1',
-        'select_all_deletion_pending': 'SELECT email FROM pymailadmin_deletion_pending',
-        'cleanup_expired_deletion': "DELETE FROM pymailadmin_deletion_pending WHERE created_at < NOW() - INTERVAL %s HOUR",
-        
-        # Recovery keys 
-        'insert_recovery_key': "INSERT INTO pymailadmin_recovery_keys (user_id, recovery_key, enc_mb_password) VALUES (%s, %s, %s)",
-        'select_recovery_key': "SELECT recovery_key, enc_mb_password FROM pymailadmin_recovery_keys WHERE user_id = %s",
-        'update_recovery_key': "UPDATE pymailadmin_recovery_keys SET recovery_key = %s, enc_mb_password = %s WHERE user_id = %s",
-        'delete_recovery_key': "DELETE FROM pymailadmin_recovery_keys WHERE user_id = %s",
+
     },   
 }
