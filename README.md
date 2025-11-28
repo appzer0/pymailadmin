@@ -18,7 +18,6 @@ NOT TO USE IN PRODUCTION
   * Users manage their mailboxes and aliases on their own.
   * Supplies a moderation interface for new registrations.
   * Supports maximum mailboxes number and maximum aliases number per mailbox.
-  * Uses a recovery key pair encrypted with a one-time displayed recovery key to store mailbox passwords.
   * When password change for a mailbox, a rekey occurs and mailbox is disabled for storage to be reencrypted.
   * Supports a web frontend admin server separated from you Dovecot mail server.
 
@@ -137,42 +136,6 @@ Allow your web server user (www-data, httpd, etc.) to reach static dir:
 
 Make sure you have a TLS certificate (with ``certbot`` or another tool).
 
-#### Install the Dovecot connector ON YOUR DOVECOT HOST
-Run the commands in the chapter below **on your Dovecot host**:
-
-Copy the connector:
-
-``cp scripts/pymailadmin-cron.py /opt/pymailadmin/pymailadmin-cron.py``
-
-Edit it. Put your database connection settings again at the top.
-Customize the table name and columns names to match yours (4 variables).
-
-You'll need those packages:
-
-``apt install python3 python3-pip python3-venv python3-dev``
-
-Create the virtual environment:
-
-``python3 -m venv /opt/pymailadmin/venv``
-
-Enter the venv by activating it:
-
-``source /opt/pymailadmin/venv/bin/activate``
-
-Install the MySQL connector:
-
-``python3 -m pip install mysql-connector-python``
-
-Create the log file:
-
-``touch /var/log/pymailadmin-cron.log``
-
-Create a cron task, e.g.:
-
-``*/2 * * * * root /opt/pymailadmin/venv/bin/python /opt/pymailadmin/pymailadmin-cron.py``
-
-That's all for your Dovecot host.
-
 ### Start the service
 ``systemctl enable --now pymailadmin.service``
 
@@ -205,8 +168,7 @@ A NE PAS UTILISER EN PRODUCTION
   * Fournit une interface de modération pour les admins.
   * Les utilisateur⋅ices gèrent leurs boites mails et leur alias.
   * Prend en charge un nombre maximum de boites mail et d'alias par boite.
-  * Utilise une paire de clefs de récupération chiffrées avec un mot de passe affiché une seule fois pour stocker les mots de passe.
-  * Quand le mot de passe de la boite mail change, un rechiffrement en attente est créé et la boite est désactivée pour le rechiffrement.
+  * Quand le mot de passe de la boite mail change, un rechiffrement est créé et la boite est désactivée pour le rechiffrement.
   * Prend en charge un serveur web frontal séparé de votre serveur mail Dovecot.
 
 ### Pré-requis
@@ -312,42 +274,6 @@ Autorisez votre serveur HTTP (www-data, httpd, etc.) à atteindre le répertoire
 ``systemctl reload nginx``
 
 Assurez-vous d'avoir un certificat TLS (via ``certbot`` ou autre).
-
-#### Installez le connecteur Dovecot SUR VOTRE SERVEUR DOVECOT
-Exécutez les commandes de ce chapitre **sur votre serveur Dovecot** :
-
-Copiez le connecteur :
-
-``cp scripts/pymailadmin-cron.py /opt/pymailadmin/pymailadmin-cron.py``
-
-Éditez-le. Mettez en haut vos paramètres de connexion à la base de données.
-Adaptez le nom de la table ainsi que les noms des colonnes (4 variables).
-
-Vous aurez besoin de ces paquets :
-
-``apt install python3 python3-pip python3-venv python3-dev``
-
-Créez l'environnement virtuel :
-
-``python3 -m venv /opt/pymailadmin/venv``
-
-Entrez dans le venv en l'activant :
-
-``source /opt/pymailadmin/venv/bin/activate``
-
-Installez le connecteur MySQL :
-
-``python3 -m pip install mysql-connector-python``
-
-Créez le fichier pour les logs :
-
-``touch /var/log/pymailadmin-cron.log``
-
-Créez une tâche planifiée pour cron, par ex. :
-
-``*/2 * * * * root /opt/pymailadmin/venv/bin/python /opt/pymailadmin/pymailadmin-cron.py``
-
-C'est tout pour votre serveur Dovecot.
 
 ### Démarrez le service
 ``systemctl enable --now pymailadmin.service``
