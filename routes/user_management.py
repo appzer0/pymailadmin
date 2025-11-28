@@ -11,6 +11,32 @@ from utils.email import send_email
 from utils.doveadm_api import doveadm_create_mailbox, doveadm_rekey_mailbox_generate, doveadm_rekey_mailbox_password, doveadm_delete_user, doveadm_delete_mailbox
 from i18n.en_US import translations
 
+def verify_dovecot_password(stored_hash, password):
+    """Verify current mailbox password"""
+    try:
+        alg = config['mailbox_hash']['algorithm']
+        prefix = config['mailbox_hash']['prefix']
+        
+        if alg in ['argon2id', 'argon2i']:
+            return argon2.verify(password, stored_hash)
+        
+        elif alg == 'bcrypt':
+            return bcrypt.verify(password, stored_hash)
+        
+        elif alg == 'sha512-crypt':
+            return sha512_crypt.verify(password, stored_hash)
+        
+        elif alg == 'sha256-crypt':
+            return sha256_crypt.verify(password, stored_hash)
+        
+        elif alg == 'pbkdf2':
+            return pbkdf2_sha256.verify(password, stored_hash)
+        
+        return False
+    
+    except:
+        return False
+
 # --- Aliases management ---
 def edit_alias_handler(environ, start_response):
     session = environ.get('session', None)
@@ -349,9 +375,8 @@ def edit_user_handler(environ, start_response):
                 <label for="email">{translations['email_field_label']}</label><br>
                 <input type="email" id="email" name="email" value="{user[0]['email']}" readonly><br><br>
                 
-                <label for="recovery_key">{translations['recovery_key_label']}</label><br>
-                <input type="password" id="recovery_key" name="recovery_key" required><br>
-                <small>{translations['recovery_key_hint']}</small>
+                <label for="old_password">{translations['old_password_field_label']}</label><br>
+                <input type="password" id="old_password" name="old_password" required><br><br>
                 
                 <label for="password">{translations['password_field_label']}</label><br>
                 <input type="password" id="password" name="password" required><br><br>
@@ -359,7 +384,7 @@ def edit_user_handler(environ, start_response):
                 <button type="submit">{translations['btn_modify_mailbox']}</button>
                 <a href="/home"><button type="button">{translations['btn_cancel']}</button></a>
                 
-                <p><a href="/recovery">{translations['i_lost_password_or_recovery']}</a></p>
+                <p><strong>{translations['lost_mailbox_password']}</strong></p>
             </form>
         """
         
@@ -378,7 +403,7 @@ def edit_user_handler(environ, start_response):
         data = parse_qs(post_data)
         
         user_id = data.get('user_id', [''])[0]
-        recovery_key = data.get('recovery_key', [''])[0]
+        old_password = data.get('old_password', [''])[0]
         new_password = data.get('password', [''])[0]
         csrf_token = data.get('csrf_token', [''])[0]
         
@@ -403,8 +428,23 @@ def edit_user_handler(environ, start_response):
             start_response("404 Not Found", [("Content-Type", "text/html")])
             return [translations['user_not_found'].encode('utf-8')]
         
+        admin_user_email = session.data.get('email', '')
+        admin_role = session.data.get('role', 'user')
+        
         email = user[0]['email']
         
+        # First verify that the current password is correct
+        stored_hash = user[0]['crypt']
+        
+        if not verify_dovecot_password(stored_hash, old_password):
+            start_response("400 Bad Request", [("Content-Type", "text/html")])
+            return [translations['old_password_incorrect'].encode('utf-8')]
+
+        if len(new_password) < 12:
+            start_response("400 Bad Request", [("Content-Type", "text/html")])
+            return [translations['password_too_short'].encode('utf-8')]
+        
+        # Old password is correct, proceed
         try:
             if new_password:
                 alg = config['mailbox_hash']['algorithm']
@@ -449,10 +489,22 @@ def edit_user_handler(environ, start_response):
                 email = user[0]['email']
                 execute_query(config['sql_dovecot']['disable_user'], (email,))
                 
-                # Everything seems OK here, let's update.
+                # Everything seems OK here, let's update Dovecot.
+                # Trigger doveadm:
+                try:
+                    doveadm_rekey_mailbox_password(email, old_password, new_password)
                 
-                ### Add doveadm API stuff here
-                ### TODO: wait for doveadm to finish rekeying mailbox before reenable mailbox
+                except Exception as err:
+                    logging.error(f"Failed to edit mailbox in Dovecot for {email}: {err}")
+                    
+                    # Re-enable user when modify has failed:
+                    execute_query(config['sql_dovecot']['enable_user'], (email,))
+                    
+                    start_response("500 Internal Server Error", [("Content-Type", "text/html")])
+                    return [translations['mailbox_edit_failed'].encode('utf-8')]
+                
+                # Re-enable user:
+                execute_query(config['sql_dovecot']['enable_user'], (email,))
                 
                 # Send password change notification to admin
                 subject = f"[{config['PRETTY_NAME']}] {translations['notify_password_changed_subject']}"
@@ -471,13 +523,7 @@ def edit_user_handler(environ, start_response):
                 # Display confirmation with new key to user
                 confirmation_html = f"""
                     <p>{translations['password_changed']}</p>
-                    <p>{translations['recovery_key_hint']}</p>
-                    <p style="font-family:monospace; font-size:1.2em; background:#ffe; padding:10px; border:1px solid #cc0;">
-                        {recovery_key}
-                    </p>
-                    <p>{translations['recovery_key_copy_save']}</p>
-                    <p><strong>{translations['recovery_key_not_visible_again']}</strong></p><br>
-                    <p><a href="/home">{translations['btn_i_saved_it']}</a></p>
+                    <ul><li>{email}</li></ul>
                 """
                 
                 body = html_template(translations['password_changed_title'], confirmation_html, admin_user_email=admin_user_email, admin_role=admin_role)
@@ -581,7 +627,9 @@ def delete_user_handler(environ, start_response):
             execute_query(config['sql_dovecot']['disable_user'], (email,))
 
             ### Trigger doveadm
-                        
+            doveadm_delete_mailbox(email)
+            doveadm_delete_user(email)
+            
             # Redirect to confirmation message
             start_response("302 Found", [("Location", "/home")])
             return [b""]

@@ -75,6 +75,7 @@ def generate_sql_queries(schema):
         'select_user_by_email': f"SELECT * FROM {schema['table_users']} WHERE {schema['field_user_email']} = %s",
         'update_user_password': f"UPDATE {schema['table_users']} SET {schema['field_user_password']} = %s WHERE {schema['field_user_id']} = %s",
         'update_user_email': f"UPDATE {schema['table_users']} SET {schema['field_user_email']} = %s WHERE {schema['field_user_id']} = %s",
+        'enable_user': f"UPDATE {schema['table_users']} SET {schema['field_user_active']} = 1 WHERE {schema['field_user_email']} = %s",
         'disable_user': f"UPDATE {schema['table_users']} SET {schema['field_user_active']} = 0 WHERE {schema['field_user_email']} = %s",
         'delete_user': f"DELETE FROM {schema['table_users']} WHERE {schema['field_user_id']} = %s",
         
@@ -115,6 +116,9 @@ dynamic_config = {
     'REGISTER_WINDOW_MINUTES': os.getenv('REGISTER_WINDOW_MINUTES', 60),
     'REGISTER_BLOCK_MINUTES': os.getenv('REGISTER_BLOCK_MINUTES', 60),
     'POSTFIX_SEPARATOR': os.getenv('POSTFIX_SEPARATOR', '+'),
+    'DOVEADM_HTTP_API_SECRET_KEY': os.getenv('DOVEADM_HTTP_API_SECRET_KEY', ''),
+    'DOVEADM_HTTP_API_URL': os.getenv('DOVEADM_HTTP_API_URL', ''),
+    'DOVEADM_HTTP_API_SOCKET': os.getenv('DOVEADM_HTTP_API_SOCKET', ''),
     
     'limits': {
         'max_mailboxes_per_user': int(os.getenv('MAX_MAILBOXES_PER_USER', 3)),
